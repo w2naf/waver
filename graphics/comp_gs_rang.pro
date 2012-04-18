@@ -102,4 +102,4 @@ PLOT_GATE_BEAM,bndArr,clrArr                                                $
     ,YCHARSIZE      = 0.6                                                   $
     ,POSITION       = posit
 
-PLOT_COLORBAR,2,1,1,0,CHARSIZE=0.75
+PLOT_COLORBAR,2,1,1,0,CHARSIZE=0.60

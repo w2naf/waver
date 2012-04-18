@@ -12,31 +12,44 @@ ymaps = 2
 posit           =  DEFINE_PANEL(1,ymaps,0,0,/BAR)
 
 XYOUTS,posit[0],1.01*posit[3],'Slant-Range Interpolated Data',CHARSIZE=0.75,ALIGN=0,/NORMAL
-movieXrange     = [-2, 7]
-movieYrange     = [-35,-27]
 MAP_PLOT_PANEL                                          $
     ,DATE               = scanDate                      $
     ,TIME               = scanTime                    $
     ,XRANGE             = movieXRange                     $
     ,YRANGE             = movieYRange                     $
     ,/NO_FILL                                           $
-    ,ROTATE             = rotate                        $
+    ,ROTATE             = movieRotate                        $
     ,POSITION           = posit
 
-clrArr          = REFORM(GET_COLOR_INDEX(interpArr,/NAN),[nBeams,nGates])
+data    = interpArr[beamRange[0]:beamRange[1],gateRange[0]:gateRange[1]]
+dims    = SIZE(data,/DIM)
+
+dataBeamArr     = INTARR(dims)
+dataGateArr     = INTARR(dims)
+dataBeamVec     = INDGEN(dims[0]) + beamRange[0]
+dataGateVec     = INDGEN(dims[1]) + gateRange[0]
+
+FOR ll=0,dims[1]-1 DO dataBeamArr[*,ll] = dataBeamVec
+FOR ll=0,dims[0]-1 DO dataGateArr[ll,*] = dataGateVec
+
+clrArr          = REFORM(GET_COLOR_INDEX(data,/NAN),dims)
+
 FOR dd=0,N_ELEMENTS(clrArr)-1 DO BEGIN
     IF clrArr[dd] EQ GET_BACKGROUND() THEN CONTINUE
-    bmGate      = ARRAY_INDICES(clrArr,dd)
-    bm          = bmGate[0]
-    rg          = bmGate[1]
+;    bmGate      = ARRAY_INDICES(clrArr,dd)
+;    bm          = bmGate[0]
+;    rg          = bmGate[1]
+
+    bm  = dataBeamArr[dd]
+    rg  = dataGateArr[dd]
 
     lat     = REFORM(bndArr_grid[0,*,*,bm,rg])
     lon     = REFORM(bndArr_grid[1,*,*,bm,rg])
 
-    p0      = CALC_STEREO_COORDS(lat[0,0],lon[0,0],ROTATE=rotate)
-    p1      = CALC_STEREO_COORDS(lat[0,1],lon[0,1],ROTATE=rotate)
-    p2      = CALC_STEREO_COORDS(lat[1,1],lon[1,1],ROTATE=rotate)
-    p3      = CALC_STEREO_COORDS(lat[1,0],lon[1,0],ROTATE=rotate)
+    p0      = CALC_STEREO_COORDS(lat[0,0],lon[0,0],ROTATE=movieRotate)
+    p1      = CALC_STEREO_COORDS(lat[0,1],lon[0,1],ROTATE=movieRotate)
+    p2      = CALC_STEREO_COORDS(lat[1,1],lon[1,1],ROTATE=movieRotate)
+    p3      = CALC_STEREO_COORDS(lat[1,0],lon[1,0],ROTATE=movieRotate)
 
     xx          = [p0[0], p1[0], p2[0], p3[0]]
     yy          = [p0[1], p1[1], p2[1], p3[1]]
@@ -49,7 +62,7 @@ MAP_PLOT_PANEL                                          $
     ,XRANGE             = movieXRange                     $
     ,YRANGE             = movieYRange                     $
     ,/NO_FILL                                           $
-    ,ROTATE             = rotate                        $
+    ,ROTATE             = movieRotate                        $
     ,POSITION           = posit
 
 OVERLAY_FOV_NAME                                    $
@@ -57,7 +70,7 @@ OVERLAY_FOV_NAME                                    $
     ,IDS            = stid                          $
     ,CHARSIZE       = 0.60                          $
     ,CHARTHICK      = 2.00                          $
-    ,ROTATE             = rotate                        $
+    ,ROTATE             = movieRotate                        $
     ,/ANNOTATE
 
 RAD_FIT_PLOT_SCAN_TITLE,1,ymaps,0,0                         $
@@ -88,3 +101,17 @@ polyX   = [julVec[0],julVec[0],scan_startJul,scan_startJul]
 polyY   = [0,1,1,0]
 POLYFILL,polyX,polyY
 
+posit   = DEFINE_PANEL(1,2,0,1,/BAR,/WITH_INFO)
+posit[3] = 0.380
+RAD_FIT_PLOT_RTI_PANEL                                                  $
+    ,COORDS             = 'mix_rang'                                    $
+    ,yrange             = drange                                        $
+    ,DATE               = date                                          $
+    ,TIME               = time                                          $
+    ,PARAM              = param                                         $
+    ,XTITLE             = 'Time [UT] - Beam '+ NUMSTR(RAD_GET_BEAM())   $
+    ,CHARSIZE           = 0.75                                          $
+    ,/LAST                                                              $
+    ,POSITION           = posit
+
+PLOT_COLORBAR,CHARSIZE=0.75,PANEL_POSITION=posit

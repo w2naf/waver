@@ -2,3 +2,5 @@ fitdata/
 psdsav/
 output/
 *.swp
+*.sav
+*~

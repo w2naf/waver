@@ -1,7 +1,8 @@
 ;K-Spectrum!!!!
 PRO PLOT_KARR
 RESTORE,FILENAME='karr.sav'
-file        = DIR('output/karr.ps',/PS)
+file        = DIR('output/kmaps/kspect/karr.ps',/PS)
+
 CLEAR_PAGE,/NEXT
 
 data    = ABS(karr) - MIN(ABS(karr))
@@ -15,8 +16,9 @@ image       = REFORM(image,[nkx,nky])
 
 kArrCharSize     = 0.60
 posit   = DEFINE_PANEL(1,1,0,0,/BAR)
-    IF KEYWORD_SET(bandLim) THEN bl$ = 'Band Limit: ' + NUMSTR(bandLim[0]*1000.,2) + ' - ' + NUMSTR(bandLim[1]*1000.,2) + ' mHz' ELSE bl$ = 'Band Limit: Entire FFT Spectrum'
-    subtitle= STRUPCASE(radar) + ' ' + FORMAT_DATE(scanDate,/HUMAN) + ' ' + bl$ 
+    IF KEYWORD_SET(bandLim) THEN bl$ = 'Band: ' + NUMSTR(bandLim[0]*1000.,2) + ' - ' + NUMSTR(bandLim[1]*1000.,2) + ' mHz' ELSE bl$ = 'Band: Entire FFT Spectrum'
+    time$       = '('+JUL2STRING(julVec[0])+' - '+JUL2STRING(julVec[nSteps-1])+')'
+    subtitle= STRUPCASE(radar) + ' ' + time$ + '!C' + bl$ 
 PLOT_TITLE,TEXTOIDL('Horizontal Wave Number'),subTitle
 
 PLOT,[0,0],/NODATA                                                      $

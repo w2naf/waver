@@ -76,6 +76,7 @@ function RadarPosGSd,center,bcrd,rcrd,site,frang,rsep,rxrise,$
      rho=dblarr(sze[1:sze[0]])
      lat=dblarr(sze[1:sze[0]])
      lng=dblarr(sze[1:sze[0]])
+       d=dblarr(sze[1:sze[0]])
  
      if (center eq 0) then bm_edge=-site.bmsep*0.5;
     
@@ -107,17 +108,19 @@ function RadarPosGSd,center,bcrd,rcrd,site,frang,rsep,rxrise,$
        if (hgt lt 90) then $
        hgt=-re+sqrt((re*re)+2*rang*re*sin(!PI*hgt/180.0)+(rang^2.));
         
-       IF rang GT 600.0 THEN BEGIN
-           d = re * ASIN(SQRT(rang^2/4. - hgt^2)/re) ;From Bristow et al. [1994]
-        ENDIF ELSE d = rang / 2.0D
+       IF (rang^2/4. - height^2) GE 0 THEN BEGIN
+           slantRange = re * ASIN(SQRT(rang^2/4. - hgt^2)/re) ;From Bristow et al. [1994]
+        ENDIF ELSE slantRange = -1
+;    ENDIF ELSE d = rang / 2.0D
 
        RadarFldPnthGS,site.geolat,site.geolon,psi,site.boresite,hgt,$ 
-                    d,r,la,ln 
+                    slantRange,r,la,ln 
 
 
        rho[i]=r
        lat[i]=la
        lng[i]=ln         
+         d[i]=slantRange
 
      endfor
   end else begin
@@ -140,9 +143,10 @@ function RadarPosGSd,center,bcrd,rcrd,site,frang,rsep,rxrise,$
 
     if (height lt 90) then $
         height=-re+sqrt((re*re)+2*rang*re*sin(!PI*height/180.0)+(rang^2.));
-    IF rang GT 600.0 THEN BEGIN
+    IF (rang^2/4. - height^2) GE 0 THEN BEGIN
         d = re * ASIN(SQRT(rang^2/4. - height^2)/re) ;From Bristow et al. [1994]
-    ENDIF ELSE d = rang / 2.0D
+    ENDIF ELSE d = -1
+;    ENDIF ELSE d = rang / 2.0D
 
     RadarFldPnthGS,site.geolat,site.geolon,psi,site.boresite,height,d,$ 
                    rho,lat,lng 

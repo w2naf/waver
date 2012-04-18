@@ -1,0 +1,109 @@
+125,128c125,135
+< pro rad_define_beams, id, nbeams, ngates, year, yrsec, $
+< 	coords=coords, height=height, bmsep=bmsep, $
+< 	normal=normal, silent=silent, lagfr0=lagfr0, smsep0=smsep0, $
+< 	fov_loc_full=fov_loc_full, fov_loc_center=fov_loc_center
+---
+> PRO RAD_DEFINE_BEAMS, id, nbeams, ngates, year, yrsec                   $
+> 	,coords         = coords                                        $
+>         ,height         = height                                        $
+>         ,bmsep          = bmsep                                         $
+> 	,normal         = normal                                        $
+>         ,silent         = silent                                        $
+>         ,lagfr0         = lagfr0                                        $
+>         ,smsep0         = smsep0                                        $
+>         ,GSMAPPING      = gsmapping                                     $
+> 	,fov_loc_full   = fov_loc_full                                  $
+>         ,fov_loc_center = fov_loc_center
+138,139d144
+< ;prinfo, strjoin(string([id, nbeams, ngates, bmsep, year, yrsec]), ',')
+< 
+151,155c156,162
+< 	'rang': cflag=0
+< 	'geog': cflag=1
+< 	'magn': cflag=2
+< 	'gate': cflag=3
+< 	'gran': cflag=4
+---
+> 	'rang'   : cflag=0
+> 	'geog'   : cflag=1
+> 	'magn'   : cflag=2
+> 	'gate'   : cflag=3
+>         'gw_rang': cflag=4
+>         'gw_geog': cflag=5
+>         'gw_magn': cflag=6
+162c169
+< if id lt 0 then begin
+---
+> if id lt 1 then begin
+168a176,179
+>         PRINT, 'This means that: '
+>         PRINT, '   lagfr0 = 1200. usec'
+>         PRINT, '   smsep0 =  300. usec'
+>         PRINT, '    bmsep =  3.24 deg' 
+195c206
+< IF cflag EQ 0 THEN BEGIN
+---
+> IF cflag EQ 0 OR cflag EQ 4 THEN BEGIN
+212c223,236
+< 			IF rad_get_scatterflag() EQ 1 THEN BEGIN
+---
+>                         ;!!!!!Here is the ionospheric reflection distance formula, used when the
+>                         ;scatterflag = 1 or coords = 'gw_rang'.
+>                         ;
+>                         ;So, you should use it if you want to know where ground scatter has been
+>                         ;turned around by the ionosphere, and not if you want to have some idea
+>                         ;of where the scatter comes from when it is reflecting off the ground.
+>                         ;Ray tracing is probably needed to really get a better read on this.
+>                         ;
+>                         ;This mapping is dicussed in Bristow et al. [1994], "Identification
+>                         ; of high-latitude acoustic gravity wave sources using the Goose Bay 
+>                         ;HF radar" [JGR]
+>                         ;Close-in ranges (those that make the argument of SQRT < 0) are non-finite.
+>                         ; //NAF - 16 DEC 2011
+> 			IF rad_get_scatterflag() EQ 1 OR cflag EQ 4 THEN BEGIN
+221a246,249
+> 
+>                         ;The following line should probably be ignored... I don't
+>                         ;think range should have a cos dependence on the angle
+>                         ;relative to boresite.  //NAF - 15DEC2011
+247a276,279
+> 
+> ;site.geoLat
+> ;site.geoLon
+> 
+261a294
+> 
+286,317d318
+< ; Determine ground range positions
+< IF cflag EQ 4 THEN BEGIN
+< 	; Use rbpos library - check that not SPEAR radar
+< 	IF id NE 128 THEN BEGIN
+<   	s    = TimeYrsecToYMDHMS(year,mo,dy,hr,mt,sc,yrsec)
+<   	rid  = RadarGetRadar(network,id)
+<   	site = RadarYMDHMSGetSite(rid,year,mo,dy,hr,mt,sc)
+< 		if size(site, /type) eq 3 then begin
+< 			prinfo, 'Cannot find site at given date: '+rid.name+' at '+strjoin(strtrim(string([year,mo,dy,hr,mt,sc]),2),'-')
+< 			return
+< 		endif
+< 
+< 		if keyword_set(bmsep) then $
+< 			site.bmsep = _bmsep
+< 
+< 		tg = indgen(ngates+1)
+< 		tb = indgen(nbeams)
+< 		bmarr = rebin(tb, nbeams, ngates+1)
+< 		rgarr = transpose(rebin(tg, ngates+1, nbeams))
+< 		pos = radarPos(1, bmarr, rgarr, site, _lagfr0*.15, _smsep0*.15, site.recrise, height, rho, lat, lon)
+< 		for ib=0,n_elements(lat[*,0])-1 do begin
+< 			for ig=0,n_elements(lat[0,*])-1 do begin
+< 				if ig eq 0 then slat = site.geolat else slat = lat[ib,ig-1]
+< 				if ig eq 0 then slon = site.geolon else slon = lon[ib,ig-1]
+< 				if ig eq 0 then sloc = 0. else sloc = fov_loc_center[0,ib,ig-1]
+< 				fov_loc_center[0,ib,ig] = sloc + calc_azdist([lat[ib,ig],lon[ib,ig]],[slat,slon])
+< 			endfor
+< 		endfor
+< 
+< 	ENDIF
+< ENDIF
+< 

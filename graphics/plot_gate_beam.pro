@@ -47,6 +47,7 @@ ENDIF ELSE BEGIN
     IF N_ELEMENTS(yStyle) EQ 0        THEN yStyle        = 1
 ENDELSE
 
+ymin = ymin > 0
 IF ~KEYWORD_SET(xRange) THEN xRange = [xMin,xMax]
 IF ~KEYWORD_SET(yRange) THEN yRange = [yMin,yMax]
 

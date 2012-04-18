@@ -121,14 +121,25 @@
 ; MODIFICATION HISTORY:
 ; Based on Steve Milan's DEFINE_BEAMS.
 ; Written by Lasse Clausen, Nov, 24 2009
+; Updated by Nathaniel Frissell, April 1, 2012
+;       >Added Support for Ground-Scatter Range/Position Mapping
+;       >Obtain range calculations from RST-based (RadarPosD/RadarPosGsD) Routines
 ;-
-pro rad_define_beams, id, nbeams, ngates, year, yrsec, $
-	coords=coords, height=height, bmsep=bmsep, $
-	normal=normal, silent=silent, lagfr0=lagfr0, smsep0=smsep0, $
-	fov_loc_full=fov_loc_full, fov_loc_center=fov_loc_center
+pro rad_define_beams, id, nbeams, ngates, year, yrsec                   $
+	,coords         = coords                                        $
+        ,height         = height                                        $
+        ,bmsep          = bmsep                                         $
+	,normal         = normal                                        $
+        ,silent         = silent                                        $
+        ,lagfr0         = lagfr0                                        $
+        ,smsep0         = smsep0                                        $
+	,fov_loc_full   = fov_loc_full                                  $
+        ,fov_loc_center = fov_loc_center
 
 common radarinfo
 ;common rad_data_blk
+
+gsMapping       = 1
 
 if n_params() ne 5 then begin
 	prinfo, 'Must give radar id, nbeams and ngates, year and yrsec.'
@@ -148,20 +159,49 @@ else $
 	coord_system = coords
 
 case coord_system of
-	'rang'   : cflag=0
-	'geog'   : cflag=1
-	'magn'   : cflag=2
-	'gate'   : cflag=3
-        'gw_rang': cflag=4
-        'gw_geog': cflag=5
-        'gw_magn': cflag=6
+	'rang'          : BEGIN
+                            cflag=0 & magn=0 & gsMapping=0
+                          END
+	'geog'          : BEGIN
+                            cflag=1 & magn = 0 & gsMapping = 0
+                          END
+	'magn'          : BEGIN
+                            cflag=1 & magn = 1 & gsMapping = 0
+                          END
+	'gs_rang'       : BEGIN
+                            cflag=0 & magn = 0 & gsMapping = 1
+                          END
+	'gs_geog'       : BEGIN
+                            cflag=1 & magn = 0 & gsMapping = 1
+                          END
+	'gs_magn'       : BEGIN
+                            cflag=1 & magn = 1 & gsMapping = 1
+                          END
+	'mix_rang'      : BEGIN
+                            cflag=0 & magn = 0 & gsMapping = 0
+                          END
+	'mix_geog'      : BEGIN
+                            cflag=1 & magn = 0 & gsMapping = 0
+                          END
+	'mix_magn'      : BEGIN
+                            cflag=1 & magn = 1 & gsMapping = 0
+                          END
+	'gate'          : cflag=2
 	else : begin
 		prinfo, 'Incorrect coordinate system type: '+coord_system
 		return
 	end
 endcase
+IF ~KEYWORD_SET(silent) THEN BEGIN
+    IF (coord_system EQ 'mix_rang')                             $
+    OR (coord_system EQ 'mix_geog')                             $
+    OR (coord_system EQ 'mix_magn')    THEN BEGIN
+        PRINFO,'WARNING: Mixed Scatter coordinate system selected.'
+        PRINFO,'RAD_DEFINE_BEAMS will return results for ionospheric scatter only in this mode.'
+    ENDIF
+ENDIF
 
-if id lt 1 then begin
+if id lt 0 then begin
 	prinfo, 'Station ID is invalid: '+string(id)
 	return
 endif
@@ -192,60 +232,10 @@ if keyword_set(bmsep) then $
 ; so that rad_fit_plot_rti works properly
 fov_loc_center = make_array(2, nbeams, ngates+1)
 fov_loc_full   = make_array(2, 4, nbeams+1, ngates+1)
-	
-; Determine range
-IF cflag EQ 0 OR cflag EQ 4 THEN BEGIN
-	height2 = 300.0^2
-	rxrise  = 100.
-	b = FINDGEN(nbeams+1)-0.5
-	g = FINDGEN(ngates+1)-0.5
-  s    = TimeYrsecToYMDHMS(year,mo,dy,hr,mt,sc,yrsec)
-  rid  = RadarGetRadar(network,id)
-  site = RadarYMDHMSGetSite(rid,year,mo,dy,hr,mt,sc)
-	if size(site, /type) eq 3 then begin
-		prinfo, 'Cannot find site at given date: '+rid.name+' at '+strjoin(strtrim(string([year,mo,dy,hr,mt,sc]),2),'-')
-		return
-	endif
-        ;Changed nbeams to nbeams-1 to avoid subscripting error /30NOV2011//NAF
-	FOR m=0,nbeams-1 DO BEGIN
-		FOR n=0,ngates DO BEGIN
-			ang   = (b[m] - site.maxbeam/2.)*site.bmsep*!dtor
-			range = (_lagfr0 - rxrise + n*_smsep0)*0.150
-                        ;!!!!!Here is the ionospheric reflection distance formula, used when the
-                        ;scatterflag = 1 or coords = 'gw_rang'.
-                        ;
-                        ;So, you should use it if you want to know where ground scatter has been
-                        ;turned around by the ionosphere, and not if you want to have some idea
-                        ;of where the scatter comes from when it is reflecting off the ground.
-                        ;Ray tracing is probably needed to really get a better read on this.
-                        ;
-                        ;This mapping is dicussed in Bristow et al. [1994], "Identification
-                        ; of high-latitude acoustic gravity wave sources using the Goose Bay 
-                        ;HF radar" [JGR]
-                        ;Close-in ranges (those that make the argument of SQRT < 0) are non-finite.
-                        ; //NAF - 16 DEC 2011
-			IF rad_get_scatterflag() EQ 1 OR cflag EQ 4 THEN BEGIN
-				IF range GT 600.0 THEN BEGIN
-					hdistance = SQRT(range*range/4.0-height2)
-					distance = !RE*ASIN(hdistance/!RE)
-				ENDIF ELSE $
-					distance=0.0
-			ENDIF ELSE $
-			distance=range
-			if m lt nbeams then $
-				fov_loc_center[0,m,n] = range;*SIN(ang)
-
-                        ;The following line should probably be ignored... I don't
-                        ;think range should have a cos dependence on the angle
-                        ;relative to boresite.  //NAF - 15DEC2011
-			fov_loc_center[1,m,n] = range*COS(ang)
-		ENDFOR
-	ENDFOR
-ENDIF
 
 ; RADARPOS(CENTER, BCRD, RCRD, SITE, FRANG, RSEP, RXRISE, HEIGHT, RHO, LAT, LNG)
 ; Determine latitude and longitude positions	
-IF cflag EQ 1 OR cflag EQ 2 THEN BEGIN
+IF cflag NE 2 THEN BEGIN
 	; Use rbpos library - check that not SPEAR radar
 	IF id NE 128 THEN BEGIN
   	s    = TimeYrsecToYMDHMS(year,mo,dy,hr,mt,sc,yrsec)
@@ -263,48 +253,58 @@ IF cflag EQ 1 OR cflag EQ 2 THEN BEGIN
 		tb = indgen(nbeams)
 		bmarr = rebin(tb, nbeams, ngates+1)
 		rgarr = transpose(rebin(tg, ngates+1, nbeams))
-		pos = radarPos(1, bmarr, rgarr, site, _lagfr0*.15, _smsep0*.15, site.recrise, height, rho, lat, lon)
+                IF ~KEYWORD_SET(gsMapping) THEN BEGIN
+                    pos = radarPosD(1, bmarr, rgarr, site, _lagfr0*.15, _smsep0*.15, site.recrise, height, rho, lat, lon,slantrange)
+                ENDIF ELSE BEGIN
+                    pos = radarPosGsD(1, bmarr, rgarr, site, _lagfr0*.15, _smsep0*.15, site.recrise, height, rho, lat, lon,slantrange)
+                ENDELSE
 
-;site.geoLat
-;site.geoLon
-
-		if cflag eq 2 then begin
+		IF KEYWORD_SET(magn) THEN BEGIN
 			s = AACGMConvert(lat, lon, replicate(height,ngates+1,nbeams), mlat, mlon, mrho)
 			lat = mlat
 			lon = mlon
 			rho = mrho
-		endif
-		fov_loc_center[0,*,*] = lat
-		fov_loc_center[1,*,*] = lon
+		ENDIF
+
+                IF cflag EQ 0 THEN BEGIN
+                    fov_loc_center[0,*,*] = slantRange
+                ENDIF ELSE BEGIN
+                    fov_loc_center[0,*,*] = lat
+                    fov_loc_center[1,*,*] = lon
+                ENDELSE
 
 		tg = indgen(ngates+2)
 		tb = indgen(nbeams+2)
 		bmarr = rebin(tb, nbeams+2, ngates+2)
 		rgarr = transpose(rebin(tg, ngates+2, nbeams+2))
-		pos = radarPos(0, bmarr, rgarr, site, _lagfr0*.15, _smsep0*.15, site.recrise, height, rho, lat, lon)
-
-		if cflag eq 2 then begin
+		pos = radarPosD(0, bmarr, rgarr, site, _lagfr0*.15, _smsep0*.15, site.recrise, height, rho, lat, lon,slantrange)
+		IF KEYWORD_SET(magn) THEN BEGIN
 			s = AACGMConvert(lat, lon, replicate(height,ngates+2,nbeams+2), mlat, mlon, mrho)
 			lat = mlat
 			lon = mlon
 			rho = mrho
-		endif
-		fov_loc_full[0,0,*,*] = lat[0:nbeams,0:ngates]
-		fov_loc_full[0,1,*,*] = lat[1:nbeams+1,0:ngates]
-		fov_loc_full[0,2,*,*] = lat[1:nbeams+1,1:ngates+1]
-		fov_loc_full[0,3,*,*] = lat[0:nbeams,1:ngates+1]
-		fov_loc_full[1,0,*,*] = lon[0:nbeams,0:ngates]
-		fov_loc_full[1,1,*,*] = lon[1:nbeams+1,0:ngates]
-		fov_loc_full[1,2,*,*] = lon[1:nbeams+1,1:ngates+1]
-		fov_loc_full[1,3,*,*] = lon[0:nbeams,1:ngates+1]
-
+		ENDIF
+                IF cflag EQ 0 THEN BEGIN
+                    fov_loc_full[0,0,*,*] = slantRange[0:nbeams,0:ngates]
+                    fov_loc_full[0,1,*,*] = slantRange[1:nbeams+1,0:ngates]
+                    fov_loc_full[0,2,*,*] = slantRange[1:nbeams+1,1:ngates+1]
+                    fov_loc_full[0,3,*,*] = slantRange[0:nbeams,1:ngates+1]
+                ENDIF ELSE BEGIN
+                    fov_loc_full[0,0,*,*] = lat[0:nbeams,0:ngates]
+                    fov_loc_full[0,1,*,*] = lat[1:nbeams+1,0:ngates]
+                    fov_loc_full[0,2,*,*] = lat[1:nbeams+1,1:ngates+1]
+                    fov_loc_full[0,3,*,*] = lat[0:nbeams,1:ngates+1]
+                    fov_loc_full[1,0,*,*] = lon[0:nbeams,0:ngates]
+                    fov_loc_full[1,1,*,*] = lon[1:nbeams+1,0:ngates]
+                    fov_loc_full[1,2,*,*] = lon[1:nbeams+1,1:ngates+1]
+                    fov_loc_full[1,3,*,*] = lon[0:nbeams,1:ngates+1]
+                ENDELSE
 	ENDIF
 ENDIF
 
 ; Determine gate numbers
-IF cflag EQ 3 THEN BEGIN
+IF cflag EQ 2 THEN BEGIN
 	FOR m=0,nbeams-1 DO $
 		fov_loc_center[0,m,0:ngates] = FINDGEN(ngates+1)
 ENDIF
-
-end
+END

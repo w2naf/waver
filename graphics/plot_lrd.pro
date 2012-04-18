@@ -1,6 +1,5 @@
 ; Plot stuff! ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 SET_FORMAT,/LANDSCAPE,/SARDINES
-colorScale      = [-1,1] * 500.
 
 CLEAR_PAGE,/NEXT
 title           = 'Local Range Determination'
@@ -30,8 +29,6 @@ FOR dd=0,N_ELEMENTS(clrArr)-1 DO BEGIN
     bm          = bmGate[0]
     rg          = bmGate[1]
     
-    IF bm EQ ctrBm AND rg EQ ctrRg THEN clrArr[dd] = GET_BLACK()
-
     lat     = REFORM(bndArr[0,*,*,bm,rg])
     lon     = REFORM(bndArr[1,*,*,bm,rg])
 
@@ -106,18 +103,23 @@ OVERLAY_FOV_NAME                                    $
     ,CHARTHICK      = 2.00                          $
     ,ROTATE         = lrdRotate                            $
     ,/ANNOTATE
-;
-;RAD_FIT_PLOT_SCAN_TITLE,2,3,1,0                         $
-;    ,SCAN_ID            = scan_id                       $
-;    ,SCAN_STARTJUL      = scan_startJul                 $
-;    ,/BAR
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 yoff            = -0.03
 posit           = DEFINE_PANEL(2,3,0,2,/BAR,/WITH_INFO)
 posit[1]        += yoff
 posit[3]        += yoff
-clrArr          = REFORM(GET_COLOR_INDEX(lr[1,*,*],/NAN,SCALE=colorScale,/SHIFT),[nSelBeams,nSelGates])
+
+data            = lr[1,*,*]
+sd              = STDDEV(data)
+mean            = MEAN(data)
+scMax           = mean + 2.*sd
+scMin           = mean - 2.*sd
+IF ABS(scMin) GT ABS(scMax) THEN scMax = ABS(scMin)
+colorScale      = scMax*[-1,1.]
+
+
+clrArr          = REFORM(GET_COLOR_INDEX(data,/NAN,SCALE=colorScale,/SHIFT),[nSelBeams,nSelGates])
 title='N-S Distance From Center!C(Beam: '+NUMSTR(ctrBm)+', Gate: '+NUMSTR(ctrRg)+')'
 PLOT_GATE_BEAM,sel_bndArr_grd,clrArr                                        $
     ,YVALS          = selGateVec                                            $
@@ -130,7 +132,16 @@ PLOT_GATE_BEAM,sel_bndArr_grd,clrArr                                        $
 posit           = DEFINE_PANEL(2,3,1,2,/BAR,/WITH_INFO)
 posit[1]        += yoff
 posit[3]        += yoff
-clrArr          = REFORM(GET_COLOR_INDEX(lr[0,*,*],/NAN,SCALE=colorScale,/SHIFT),[nSelBeams,nSelGates])
+
+data            = lr[0,*,*]
+sd              = STDDEV(data)
+mean            = MEAN(data)
+scMax           = mean + 2.*sd
+scMin           = mean - 2.*sd
+IF ABS(scMin) GT ABS(scMax) THEN scMax = ABS(scMin)
+colorScale      = scMax*[-1,1.]
+
+clrArr          = REFORM(GET_COLOR_INDEX(data,/NAN,SCALE=colorScale,/SHIFT),[nSelBeams,nSelGates])
 title='E-W Distance From Center!C(Beam: '+NUMSTR(ctrBm)+', Gate: '+NUMSTR(ctrRg)+')'
 PLOT_GATE_BEAM,sel_bndArr_grd,clrArr                                        $
     ,YVALS          = selGateVec                                            $
@@ -139,8 +150,7 @@ PLOT_GATE_BEAM,sel_bndArr_grd,clrArr                                        $
     ,CHARSIZE       = 0.5                                                   $
     ,POSITION       = posit
 
-
-PLOT_COLORBAR,2,1,1,0,CHARSIZE=0.75,/SHIFT,LEGEND='Distance [km]',SCALE=colorscale
+PLOT_COLORBAR,2,1,1,0,CHARSIZE=0.60,/SHIFT,LEGEND='Distance [km]',SCALE=colorscale
 
 
 legend  = ['X [km]: ' + NUMSTR(xspread,1)       $

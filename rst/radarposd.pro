@@ -71,6 +71,7 @@ function RadarPosD,center,bcrd,rcrd,site,frang,rsep,rxrise,$
      rho=dblarr(sze[1:sze[0]])
      lat=dblarr(sze[1:sze[0]])
      lng=dblarr(sze[1:sze[0]])
+       d=dblarr(sze[1:sze[0]])
  
      if (center eq 0) then bm_edge=-site.bmsep*0.5;
     
@@ -97,19 +98,18 @@ function RadarPosD,center,bcrd,rcrd,site,frang,rsep,rxrise,$
       
 
        psi=site.bmsep*(bcrd[i]-offset)+bm_edge
-       d=RadarSlantRange(fr,rs,rx,range_edge,rcrd[i]+1)
+       slantRange=RadarSlantRange(fr,rs,rx,range_edge,rcrd[i]+1)
 
        if (hgt lt 90) then $
          hgt=-re+sqrt((re*re)+2*d*re*sin(!PI*hgt/180.0)+(d*d));
 
-       RadarFldPnth,site.geolat,site.geolon,psi,site.boresite,hgt,$ 
-                    d,r,la,ln 
+       RadarFldPnth,site.geolat,site.geolon,psi,site.boresite,hgt,slantRange,r,la,ln 
 
 
        rho[i]=r
        lat[i]=la
        lng[i]=ln         
-
+         d[i]=slantRange
      endfor
   end else begin
 

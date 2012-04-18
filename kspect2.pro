@@ -5,10 +5,7 @@ RESTORE
 graphicsLevel   = 1
 scanDate        = dateVec[0]
 @event
-fftXMax         = 1.5
 
-sim     = 0
-keep_lr = 1 
 IF KEYWORD_SET(sim) THEN BEGIN
     rgNormalArr  = gwsim(LR=lr,BNDLR=lrBnd,JULS=scan_sJulVec,KEEP_LR=keep_lr)
     @comp_sim_tid.pro
@@ -18,13 +15,15 @@ ENDIF ELSE BEGIN
     @plot_range_dep_remove.pro
 ENDELSE
 
+SPAWN,'rm -R output/kmaps/kspect/'
+SPAWN,'mkdir -p output/kmaps/kspect/'
+
 thick           = 4
 !P.THICK        = thick
 !P.CHARTHICK    = thick
 !X.THICK    = thick
 !Y.THICK    = thick
 
-noNormData      = interpData
 interpData      = rgNormalArr
 
 ;plotBeam = [  5, 10, 15,  5, 10, 15,  5, 10, 15]
@@ -60,29 +59,7 @@ FOR ii=0,N_ELEMENTS(plotBeam)-1 DO BEGIN
 ENDFOR
 
 SET_FORMAT,/LANDSCAPE,/SARDINES
-file            = DIR('output/multi.ps',/PS)
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;Compare raw to beam interpolated data.
-CLEAR_PAGE,/NEXT
-PLOT_TITLE,'Time Series of Selected Cells',STRUPCASE(radar) + ' ' + FORMAT_DATE(scanDate,/HUMAN)
-
-MULTIPLOT,scan_sJulVec,selRawData                                       $
-    ,PLOTGATE           = plotGate                                      $
-    ,PLOTBEAM           = plotBeam                                      $
-    ,BEAMARR            = selBeamArr                                    $
-    ,GATEARR            = selGateArr                                    $
-    ,OPLOTARR           = noNormData                                    $
-    ,OPLOT_XAXIS        = scan_sJulVec                                  $
-    ,OPLOTLEGEND        = 'Beam Interpolated Data'                      $
-    ,/YSTYLE                                                            $
-    ,XTITLE             = 'UT'                                          $
-    ,XTICKFORMAT        = 'LABEL_DATE'                                  $
-    ,/XSTYLE                                                            $
-    ,YTITLE             = 'Power [dB]'                                  $
-    ,XCHARSIZE          = 0.5                                           $
-    ,YCHARSIZE          = 0.5                                           $
-    ,GEOMETRY           = [3,3]
+file            = DIR('output/kmaps/kspect/multi.ps',/PS)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;Time interpolation - Fit everything onto julVec grid.
@@ -317,6 +294,7 @@ MULTIPLOT,xAxis,yAxis                                                   $
 
 PS_CLOSE
 
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;Calculate Spectral Density Matrix
 ;See Samson et al. [1990] - Goose Bay Radar Observations of Earth Reflected Gravity Waves in the High-Latitude Ionosphere
@@ -326,6 +304,9 @@ Dlm     = COMPLEXARR(nCells,nCells)
 pf      = WHERE(freqVec GT 0)
 posFreqVec      = freqVec[pf]
 posSpectArr     = spectArr[pf,*,*]
+
+SAVE,FILENAME='spect.sav'
+PLOT_FULL_SPECTRUM
 
 IF KEYWORD_SET(bandLim) THEN BEGIN
     ;blInx   = WHERE(ABS(freqVec) GE bandLim[0] AND ABS(freqVec) LE bandLim[1],cnt)
@@ -353,7 +334,7 @@ FOR ll=0,nCells-1 DO BEGIN
 ENDFOR  ;ll
 
 IF KEYWORD_SET(graphicsLevel) THEN BEGIN
-    file    = DIR('output/dlm_abs.ps',/PS)
+    file    = DIR('output/kmaps/kspect/dlm_abs.ps',/PS)
     CLEAR_PAGE,/NEXT
     data   = ABS(dlm)
     sd      = STDDEV(data)
@@ -404,7 +385,7 @@ ENDIF
 
 ;Real Part
 IF KEYWORD_SET(graphicsLevel) THEN BEGIN
-    file    = DIR('output/dlm_re.ps',/PS)
+    file    = DIR('output/kmaps/kspect/dlm_re.ps',/PS)
     CLEAR_PAGE,/NEXT
     data    = REAL_PART(dlm)
     sd      = STDDEV(data)
@@ -457,7 +438,7 @@ ENDIF
 
 ;Imaginary Part
 IF KEYWORD_SET(graphicsLevel) THEN BEGIN
-    file    = DIR('output/dlm_im.ps',/PS)
+    file    = DIR('output/kmaps/kspect/dlm_im.ps',/PS)
     CLEAR_PAGE,/NEXT
 
     data   = IMAGINARY(dlm)
@@ -533,12 +514,10 @@ dy      = ABS(MAX(lr[1,*,1:nselgates-1]-lr[1,*,0:nselgates-2]))
 kx_max  = !PI / dx
 ky_max  = !PI / dy
 
-dkx     = 0.010
 nkx     = CEIL(2*kx_max/dkx)
 IF nkx MOD 2 EQ 0 THEN ++nkx
 kx_vec  = kx_max * (2*FINDGEN(nkx)/(nkx-1) - 1)
 
-dky     = 0.010
 nky     = CEIL(2*ky_max/dky)
 IF nky MOD 2 EQ 0 THEN ++nky
 ky_vec  = ky_max * (2*FINDGEN(nky)/(nky-1) - 1)
