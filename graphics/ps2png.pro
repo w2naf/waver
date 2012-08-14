@@ -7,7 +7,7 @@ path$           = FILE_DIRNAME(fileName_in$)
 
 fileName_out$   = path$ + '/' + baseName$ + '.png'
 
-cmd$            = 'convert -density 300 -quality 100 -page letter +repage +matte '         $
+cmd$            = 'convert -density 300 -quality 100 -page letter -trim +matte -resize x1000 +repage '         $
                 + fileName_in$ + ' ' + fileName_out$
 SPAWN,cmd$,result$,error$
 ;IF KEYWORD_SET(rotate) THEN rot$ = ' -rotate '+NUMSTR(rotate)+' ' ELSE rot$=''

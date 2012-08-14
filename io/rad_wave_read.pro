@@ -6,10 +6,12 @@ PRO RAD_WAVE_READ,date,radar                                    $
     ,VERBOSE            = verbose                               $
     ,DYNFFT_ONLY        = dynfft_only                           $
     ,INTPSD_ONLY        = intpsd_only                           $
+    ,FTEST              = fTest                                 $
     ,WRITE              = write
 
 COMMON WAVE_BLK
 
+IF N_ELEMENTS(fTest) NE 0 THEN s = TEMPORARY(fTest)
 
 IF ~KEYWORD_SET(fileName) THEN BEGIN
     IF KEYWORD_SET(_dir) THEN dir = _dir ELSE dir = 'psdsav/'

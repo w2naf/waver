@@ -12,6 +12,13 @@ ENDIF
 timeInx = WHERE(dataStruct_in.time GE sjul AND dataStruct_in.time LE fjul)
 juls    = dataStruct_in.time[timeInx]
 data    = dataStruct_in.data[timeInx]
+
+;Make sure the time vector is monotonic... just because sometimes it is not...
+;Scary, I know...
+srt     = SORT(juls)
+juls    = juls[srt]
+data    = data[srt]
+
 nJuls   = N_ELEMENTS(juls)
 
 goodDataInx  = WHERE(data LT 10000, cnt)

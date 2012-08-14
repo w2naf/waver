@@ -101,6 +101,14 @@ polyX   = [julVec[0],julVec[0],scan_startJul,scan_startJul]
 polyY   = [0,1,1,0]
 POLYFILL,polyX,polyY
 
+beam    = RAD_GET_BEAM()
+BEAM_AZM,beam,MAGNAZM=magnAzm,GEOGAZM=geogAzm
+gAzm$   = NUMSTR(geogAzm) + TEXTOIDL('^{\circ}')
+mAzm$   = NUMSTR(magnAzm) + TEXTOIDL('^{\circ}')
+
+xtitle  = 'Time [UT] - Beam '+ NUMSTR(beam)                             $
+        + ' (Geog. Azm: ' + gAzm$ + ', Magn. Azm: ' + mAzm$ + ')'
+
 posit   = DEFINE_PANEL(1,2,0,1,/BAR,/WITH_INFO)
 posit[3] = 0.380
 RAD_FIT_PLOT_RTI_PANEL                                                  $
@@ -109,7 +117,7 @@ RAD_FIT_PLOT_RTI_PANEL                                                  $
     ,DATE               = date                                          $
     ,TIME               = time                                          $
     ,PARAM              = param                                         $
-    ,XTITLE             = 'Time [UT] - Beam '+ NUMSTR(RAD_GET_BEAM())   $
+    ,XTITLE             = xtitle                                        $
     ,CHARSIZE           = 0.75                                          $
     ,/LAST                                                              $
     ,POSITION           = posit

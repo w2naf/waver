@@ -14,6 +14,8 @@ catPath = 'fitdata/'
 
 startTime       = SYSTIME(/SECONDS)
 
+IF KEYWORD_SET(radar) AND ~KEYWORD_SET(radarVec) THEN radarVec = radar
+
 IF ~KEYWORD_SET(radarVec)       THEN                            $
     radarVec    = ['bks', 'cve', 'cvw', 'fhe', 'fhw'            $
                   ,'gbr', 'han', 'hok', 'inv', 'kap'            $

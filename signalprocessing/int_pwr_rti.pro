@@ -40,7 +40,8 @@ FOR gate=startGate,endGate DO BEGIN
     IF  KEYWORD_SET(verbose) THEN PRINFO                                        $
         , ' Radar: ' + radar                                                    $
         + ' Beam: ' + NUMSTR(beam)                                              $
-        + ' Gate: ' + NUMSTR(gate)
+        + ' Gate: ' + NUMSTR(gate)                                              $
+        + ' Date: ' + JUL2STRING(sjul)
 
     gateDataStruct  = {time:juls, data:data[*,gate]}
 

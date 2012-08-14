@@ -99,7 +99,8 @@ pro plot_title, title, subtitle                                 $
     ,TOP_RIGHT_TITLE            = top_right_title               $
     ,TOP_RIGHT_SUBTITLE         = top_right_subtitle            $
     ,XOFFSET                    = xOffSet                       $
-    ,YOFFSET                    = yOffSet
+    ,YOFFSET                    = yOffSet                       $
+    ,SUB_SIZE_FAC               = subFac
 
 if n_elements(title) eq 0 then $
 	title = ''
@@ -111,6 +112,7 @@ if !d.name eq 'X' then $
 	fac = 2. $
 else $
 	fac = 1.
+IF ~KEYWORD_SET(subFac) THEN subFac =1
 
 ; make title flush with one big panel
 ; ish
@@ -129,7 +131,7 @@ XYOUTS, pos[0]-.01, 0.91+yOffSet, '!5'+title+'!3', /NORMAL,$
 	COLOR=foreground, charSIZE=fac*1.5
 
 XYOUTS, pos[0]-.01, 0.88+yOffSet, '!5'+subtitle+'!3', /NORMAL,$
-	COLOR=foreground, charSIZE=fac
+	COLOR=foreground, charSIZE=fac*subFac
 
 if keyword_set(top_right_title) then begin
 	if strlen(top_right_title) gt 1 then begin

@@ -1,28 +1,33 @@
-PRO KSPECT2,GL=grapicsLevel
+PRO KSPECT2
 COMMON RAD_DATA_BLK
+COMMON MUSIC_PARAMS
 
 RESTORE
-graphicsLevel   = 1
+
+IF N_ELEMENTS(gl) EQ 0 THEN gl = 0
 scanDate        = dateVec[0]
-@event
+;@event
 
 IF KEYWORD_SET(sim) THEN BEGIN
     rgNormalArr  = gwsim(LR=lr,BNDLR=lrBnd,JULS=scan_sJulVec,KEEP_LR=keep_lr)
-    @comp_sim_tid.pro
+    IF gl GE 2 THEN BEGIN
+        @comp_sim_tid.pro
+    ENDIF
 ENDIF ELSE BEGIN
-    rgNormalArr  = NORMALIZE_RANGE(interpData)
-    ;rgNormalArr = interpData
-    @plot_range_dep_remove.pro
+    ;rgNormalArr  = NORMALIZE_RANGE(interpData)
+    rgNormalArr = interpData
+    ;IF gl GE 3 THEN @plot_range_dep_remove.pro
 ENDELSE
 
-SPAWN,'rm -R output/kmaps/kspect/'
+
+SPAWN,'rm -f output/kmaps/kspect/*'
 SPAWN,'mkdir -p output/kmaps/kspect/'
 
 thick           = 4
 !P.THICK        = thick
 !P.CHARTHICK    = thick
-!X.THICK    = thick
-!Y.THICK    = thick
+!X.THICK        = thick
+!Y.THICK        = thick
 
 interpData      = rgNormalArr
 
@@ -58,8 +63,11 @@ FOR ii=0,N_ELEMENTS(plotBeam)-1 DO BEGIN
    plotGateInx[ii] = WHERE(selGateArr[0,*] EQ plotGate[ii]) 
 ENDFOR
 
-SET_FORMAT,/LANDSCAPE,/SARDINES
-file            = DIR('output/kmaps/kspect/multi.ps',/PS)
+mpGl    = 3
+IF gl GE mpGl THEN BEGIN
+    SET_FORMAT,/LANDSCAPE,/SARDINES
+    file            = DIR('output/kmaps/kspect/multi.ps',/PS)
+ENDIF
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;Time interpolation - Fit everything onto julVec grid.
@@ -72,33 +80,36 @@ FOR bb=0,dims[1]-1 DO BEGIN
     ENDFOR
 ENDFOR
 
-CLEAR_PAGE,/NEXT
-PLOT_TITLE,'Time Series of Selected Cells',STRUPCASE(radar) + ' ' + FORMAT_DATE(scanDate,/HUMAN)
-yRange  = [0,5]
+IF gl GE mpGL THEN BEGIN
+    CLEAR_PAGE,/NEXT
+    PLOT_TITLE,'Time Series of Selected Cells',STRUPCASE(radar) + ' ' + FORMAT_DATE(scanDate,/HUMAN)
+    yRange  = [0,5]
 
-yMax    = MAX(interpdata[*,plotBeamInx,plotGateInx],/NAN,MIN=yMin)
-IF yMin LT 0 THEN BEGIN
-    yMax        = MAX(ABS(interpdata[*,plotBeamInx,plotGateInx]),/NAN)
-    yrange      = yMax * [-1,1]
-ENDIF ELSE yrange = [0, yMax]
+    yMax    = MAX(interpdata[*,plotBeamInx,plotGateInx],/NAN,MIN=yMin)
+    IF yMin LT 0 THEN BEGIN
+        yMax        = MAX(ABS(interpdata[*,plotBeamInx,plotGateInx]),/NAN)
+        yrange      = yMax * [-1,1]
+    ENDIF ELSE yrange = [0, yMax]
 
-MULTIPLOT,scan_sJulVec,interpData                                       $
-    ,PLOTGATE           = plotGate                                      $
-    ,PLOTBEAM           = plotBeam                                      $
-    ,BEAMARR            = selBeamArr                                    $
-    ,GATEARR            = selGateArr                                    $
-;    ,YRANGE             = yRange                                        $
-    ,OPLOTARR           = timeInterpArr                                 $
-    ,OPLOT_XAXIS        = julVec                                        $
-    ,OPLOTLEGEND        = 'Time Interpolated Data'                      $
-    ,/YSTYLE                                                            $
-    ,XTITLE             = 'UT'                                          $
-    ,XTICKFORMAT        = 'LABEL_DATE'                                  $
-    ,/XSTYLE                                                            $
-    ,YTITLE             = 'Power [dB]'                                  $
-    ,XCHARSIZE          = 0.5                                           $
-    ,YCHARSIZE          = 0.5                                           $
-    ,GEOMETRY           = [3,3]
+    MULTIPLOT,scan_sJulVec,interpData                                       $
+        ,PLOTGATE           = plotGate                                      $
+        ,PLOTBEAM           = plotBeam                                      $
+        ,BEAMARR            = selBeamArr                                    $
+        ,GATEARR            = selGateArr                                    $
+    ;    ,YRANGE             = yRange                                        $
+        ,OPLOTARR           = timeInterpArr                                 $
+        ,OPLOT_XAXIS        = julVec                                        $
+        ,OPLOTLEGEND        = 'Time Interpolated Data'                      $
+        ,/YSTYLE                                                            $
+        ,XTITLE             = 'UT'                                          $
+        ,XTICKFORMAT        = 'LABEL_DATE'                                  $
+        ,/XSTYLE                                                            $
+        ,YTITLE             = 'Power [dB]'                                  $
+        ,XCHARSIZE          = 0.5                                           $
+        ,YCHARSIZE          = 0.5                                           $
+        ,GEOMETRY           = [3,3]
+ENDIF   ;mpGL
+
 interpData      = timeInterpArr
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -113,27 +124,28 @@ FOR bb=0,dims[1]-1 DO BEGIN
     ENDFOR
 ENDFOR
 
-CLEAR_PAGE,/NEXT
-PLOT_TITLE,'Time Series of Selected Cells',STRUPCASE(radar) + ' ' + FORMAT_DATE(scanDate,/HUMAN)
-MULTIPLOT,julVec,interpData                                         $
-    ,PLOTGATE           = plotGate                                      $
-    ,PLOTBEAM           = plotBeam                                      $
-    ,BEAMARR            = selBeamArr                                    $
-    ,GATEARR            = selGateArr                                    $
-;    ,YRANGE             = yrange                                        $
-    ,OPLOTARR           = linFitArr                                     $
-    ,OPLOTLEGEND        = 'Linear Fit'                                  $
-    ,/YSTYLE                                                            $
-    ,XTITLE             = 'UT'                                          $
-    ,XTICKFORMAT        = 'LABEL_DATE'                                  $
-    ,/XSTYLE                                                            $
-    ,YTITLE             = 'Power [dB]'                                  $
-    ,XCHARSIZE          = 0.5                                           $
-    ,YCHARSIZE          = 0.5                                           $
-    ,GEOMETRY           = [3,3]
+IF gl GE mpGL THEN BEGIN
+    CLEAR_PAGE,/NEXT
+    PLOT_TITLE,'Time Series of Selected Cells',STRUPCASE(radar) + ' ' + FORMAT_DATE(scanDate,/HUMAN)
+    MULTIPLOT,julVec,interpData                                         $
+        ,PLOTGATE           = plotGate                                      $
+        ,PLOTBEAM           = plotBeam                                      $
+        ,BEAMARR            = selBeamArr                                    $
+        ,GATEARR            = selGateArr                                    $
+    ;    ,YRANGE             = yrange                                        $
+        ,OPLOTARR           = linFitArr                                     $
+        ,OPLOTLEGEND        = 'Linear Fit'                                  $
+        ,/YSTYLE                                                            $
+        ,XTITLE             = 'UT'                                          $
+        ,XTICKFORMAT        = 'LABEL_DATE'                                  $
+        ,/XSTYLE                                                            $
+        ,YTITLE             = 'Power [dB]'                                  $
+        ,XCHARSIZE          = 0.5                                           $
+        ,YCHARSIZE          = 0.5                                           $
+        ,GEOMETRY           = [3,3]
+ENDIF   ;mpGL
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-CLEAR_PAGE,/NEXT
 interpData      = interpData - linFitArr
 ;Calculate Cell Mean - just a check on things
 dims    = SIZE(interpData,/DIM)
@@ -156,43 +168,48 @@ FOR bb=0,dims[1]-1 DO BEGIN
     ENDFOR
 ENDFOR
 
-PLOT_TITLE,'Time Series of Selected Cells (Detrended)',STRUPCASE(radar) + ' ' + FORMAT_DATE(scanDate,/HUMAN)
-det_Yrange      = [-1, 1] * 2.
-MULTIPLOT,julVec,interpData                                         $
-    ,PLOTGATE           = plotGate                                      $
-    ,PLOTBEAM           = plotBeam                                      $
-    ,BEAMARR            = selBeamArr                                    $
-    ,GATEARR            = selGateArr                                    $
-    ,OPLOTARR           = det_yRange[1]*hanningArr                      $
-    ,OPLOTLEGEND        = NUMSTR(det_YRange[1],1)+'*Hanning Window'     $
-;    ,YRANGE             = det_Yrange                                    $
-    ,/YSTYLE                                                            $
-    ,XTITLE             = 'UT'                                          $
-    ,XTICKFORMAT        = 'LABEL_DATE'                                  $
-    ,/XSTYLE                                                            $
-    ,YTITLE             = 'Power [dB]'                                  $
-    ,XCHARSIZE          = 0.5                                           $
-    ,YCHARSIZE          = 0.5                                           $
-    ,GEOMETRY           = [3,3]
+IF gl GE mpGL THEN BEGIN
+    CLEAR_PAGE,/NEXT
+    PLOT_TITLE,'Time Series of Selected Cells (Detrended)',STRUPCASE(radar) + ' ' + FORMAT_DATE(scanDate,/HUMAN)
+    det_Yrange      = [-1, 1] * 2.
+    MULTIPLOT,julVec,interpData                                         $
+        ,PLOTGATE           = plotGate                                      $
+        ,PLOTBEAM           = plotBeam                                      $
+        ,BEAMARR            = selBeamArr                                    $
+        ,GATEARR            = selGateArr                                    $
+        ,OPLOTARR           = det_yRange[1]*hanningArr                      $
+        ,OPLOTLEGEND        = NUMSTR(det_YRange[1],1)+'*Hanning Window'     $
+    ;    ,YRANGE             = det_Yrange                                    $
+        ,/YSTYLE                                                            $
+        ,XTITLE             = 'UT'                                          $
+        ,XTICKFORMAT        = 'LABEL_DATE'                                  $
+        ,/XSTYLE                                                            $
+        ,YTITLE             = 'Power [dB]'                                  $
+        ,XCHARSIZE          = 0.5                                           $
+        ,YCHARSIZE          = 0.5                                           $
+        ,GEOMETRY           = [3,3]
+ENDIF   ;mpGL
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-CLEAR_PAGE,/NEXT
 interpData      = interpData * hanningArr
-PLOT_TITLE,'Time Series of Selected Cells (Pre-FFT)',STRUPCASE(radar) + ' ' + FORMAT_DATE(scanDate,/HUMAN)
-MULTIPLOT,julVec,interpData                                         $
-    ,PLOTGATE           = plotGate                                      $
-    ,PLOTBEAM           = plotBeam                                      $
-    ,BEAMARR            = selBeamArr                                    $
-    ,GATEARR            = selGateArr                                    $
-;    ,YRANGE             = det_Yrange                                    $
-    ,/YSTYLE                                                            $
-    ,XTITLE             = 'UT'                                          $
-    ,XTICKFORMAT        = 'LABEL_DATE'                                  $
-    ,/XSTYLE                                                            $
-    ,YTITLE             = 'Power [dB]'                                  $
-    ,XCHARSIZE          = 0.5                                           $
-    ,YCHARSIZE          = 0.5                                           $
-    ,GEOMETRY           = [3,3]
+IF gl GE mpGL THEN BEGIN
+    CLEAR_PAGE,/NEXT
+    PLOT_TITLE,'Time Series of Selected Cells (Pre-FFT)',STRUPCASE(radar) + ' ' + FORMAT_DATE(scanDate,/HUMAN)
+    MULTIPLOT,julVec,interpData                                         $
+        ,PLOTGATE           = plotGate                                      $
+        ,PLOTBEAM           = plotBeam                                      $
+        ,BEAMARR            = selBeamArr                                    $
+        ,GATEARR            = selGateArr                                    $
+    ;    ,YRANGE             = det_Yrange                                    $
+        ,/YSTYLE                                                            $
+        ,XTITLE             = 'UT'                                          $
+        ,XTICKFORMAT        = 'LABEL_DATE'                                  $
+        ,/XSTYLE                                                            $
+        ,YTITLE             = 'Power [dB]'                                  $
+        ,XCHARSIZE          = 0.5                                           $
+        ,YCHARSIZE          = 0.5                                           $
+        ,GEOMETRY           = [3,3]
+ENDIF   ; mpGL
 
 
 ;Calculate FFT Window Array
@@ -222,78 +239,79 @@ ENDFOR
 
 
 ; Full FFT Plots ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-xAxis           = freqVec * 1000.
-yAxis           = REAL_PART(spectArr)
-legend          = 'Real Part'
-oPlotArr        = IMAGINARY(spectArr)
-oPlotLegend     = 'Imaginary'
+IF gl GE mpGL THEN BEGIN
+    xAxis           = freqVec * 1000.
+    yAxis           = REAL_PART(spectArr)
+    legend          = 'Real Part'
+    oPlotArr        = IMAGINARY(spectArr)
+    oPlotLegend     = 'Imaginary'
 
-;Set fftYRange
-oPlotMin    = MIN(oPlotArr[*,plotBeamInx,plotGateInx],/NaN) 
-yAxisMin    = MIN(yAxis[*,plotBeamInx,plotGateInx],/NaN) 
-IF oPlotMin LT yAxisMin THEN fftMin = oPlotMin ELSE fftMin = yAxisMin
+    ;Set fftYRange
+    oPlotMin    = MIN(oPlotArr[*,plotBeamInx,plotGateInx],/NaN) 
+    yAxisMin    = MIN(yAxis[*,plotBeamInx,plotGateInx],/NaN) 
+    IF oPlotMin LT yAxisMin THEN fftMin = oPlotMin ELSE fftMin = yAxisMin
 
-oPlotMax    = MAX(oPlotArr[*,plotBeamInx,plotGateInx],/NaN) 
-yAxisMax    = MAX(yAxis[*,plotBeamInx,plotGateInx],/NaN)
-IF oPlotMax GT yAxisMax THEN fftMax = oPlotMax ELSE fftMax = yAxisMax
+    oPlotMax    = MAX(oPlotArr[*,plotBeamInx,plotGateInx],/NaN) 
+    yAxisMax    = MAX(yAxis[*,plotBeamInx,plotGateInx],/NaN)
+    IF oPlotMax GT yAxisMax THEN fftMax = oPlotMax ELSE fftMax = yAxisMax
 
-fftYrange   = [fftMin, fftMax]
-IF ~KEYWORD_SET(fftXmax) THEN BEGIN
-    IF KEYWORD_SET(fftxrange) THEN s=TEMPORARY(fftXrange)
-ENDIF ELSE fftXrange = fftXMax *[-1,1]
+    fftYrange   = [fftMin, fftMax]
+    IF ~KEYWORD_SET(fftXmax) THEN BEGIN
+        IF KEYWORD_SET(fftxrange) THEN s=TEMPORARY(fftXrange)
+    ENDIF ELSE fftXrange = fftXMax *[-1,1]
 
-;xaxis   = findgen(N_elements(xaxis))
-CLEAR_PAGE,/NEXT
-PLOT_TITLE,'Temporal Spectrum',STRUPCASE(radar) + ' ' + FORMAT_DATE(scanDate,/HUMAN)
-MULTIPLOT,xAxis,yAxis                                                   $
-    ,PLOTGATE           = plotGate                                      $
-    ,PLOTBEAM           = plotBeam                                      $
-    ,BEAMARR            = selBeamArr                                    $
-    ,GATEARR            = selGateArr                                    $
-    ,OPLOTARR           = oPlotArr                                      $
-    ,OPLOTLEGEND        = oPlotLegend                                   $
-    ,LEGEND             = legend                                        $
-    ,/YSTYLE                                                            $
-    ,XTITLE             = 'Frequency [mHz]'                             $
-    ,XRANGE             = fftXrange                                     $
-    ,/XSTYLE                                                            $
-    ,YTITLE             = TEXTOIDL('s(f) [(dB)]')                       $
-    ,XCHARSIZE          = 0.5                                           $
-    ,YCHARSIZE          = 0.5                                           $
-    ,GEOMETRY           = [3,3]
+    ;xaxis   = findgen(N_elements(xaxis))
+    CLEAR_PAGE,/NEXT
+    PLOT_TITLE,'Temporal Spectrum',STRUPCASE(radar) + ' ' + FORMAT_DATE(scanDate,/HUMAN)
+    MULTIPLOT,xAxis,yAxis                                                   $
+        ,PLOTGATE           = plotGate                                      $
+        ,PLOTBEAM           = plotBeam                                      $
+        ,BEAMARR            = selBeamArr                                    $
+        ,GATEARR            = selGateArr                                    $
+        ,OPLOTARR           = oPlotArr                                      $
+        ,OPLOTLEGEND        = oPlotLegend                                   $
+        ,LEGEND             = legend                                        $
+        ,/YSTYLE                                                            $
+        ,XTITLE             = 'Frequency [mHz]'                             $
+        ,XRANGE             = fftXrange                                     $
+        ,/XSTYLE                                                            $
+        ,YTITLE             = TEXTOIDL('s(f) [(dB)]')                       $
+        ,XCHARSIZE          = 0.5                                           $
+        ,YCHARSIZE          = 0.5                                           $
+        ,GEOMETRY           = [3,3]
 
-; Positive Frequency Magnitude and Band Limits ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-pf      = WHERE(freqVec GT 0)
-xAxis   = freqVec[pf] * 1000.
-yAxis   = ABS(spectArr[pf,*,*])^2
+    ; Positive Frequency Magnitude and Band Limits ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+    pf      = WHERE(freqVec GT 0)
+    xAxis   = freqVec[pf] * 1000.
+    yAxis   = ABS(spectArr[pf,*,*])^2
 
-fftYrange = [0,MAX(yAxis[*,plotBeamInx,plotGateInx],/NaN)]
+    fftYrange = [0,MAX(yAxis[*,plotBeamInx,plotGateInx],/NaN)]
 
-IF ~KEYWORD_SET(fftXmax) THEN BEGIN
-    fftXrange = [0,CEIL(MAX(xAxis))]
-ENDIF ELSE fftXrange = [0,fftXMax]
+    IF ~KEYWORD_SET(fftXmax) THEN BEGIN
+        fftXrange = [0,CEIL(MAX(xAxis))]
+    ENDIF ELSE fftXrange = [0,fftXMax]
 
-CLEAR_PAGE,/NEXT
-PLOT_TITLE,'Temporal Spectrum',STRUPCASE(radar) + ' ' + FORMAT_DATE(scanDate,/HUMAN)
-IF KEYWORD_SET(bandLim) THEN plotBandLim = bandLim*1000.
-MULTIPLOT,xAxis,yAxis                                                   $
-    ,PLOTGATE           = plotGate                                      $
-    ,PLOTBEAM           = plotBeam                                      $
-    ,BEAMARR            = selBeamArr                                    $
-    ,GATEARR            = selGateArr                                    $
-    ,/YSTYLE                                                            $
-    ,XTITLE             = 'Frequency [mHz]'                             $
-    ,XRANGE             = fftXRange                                     $
-    ,BANDLIM            = plotBandLim                                   $
-    ,/XSTYLE                                                            $
-    ,YTITLE             = TEXTOIDL('S(f) [(dB)^2]')                     $
-;    ,YRANGE             = fftYrange                                     $
-    ,XCHARSIZE          = 0.5                                           $
-    ,YCHARSIZE          = 0.5                                           $
-    ,GEOMETRY           = [3,3]
+    CLEAR_PAGE,/NEXT
+    PLOT_TITLE,'Temporal Spectrum',STRUPCASE(radar) + ' ' + FORMAT_DATE(scanDate,/HUMAN)
+    IF KEYWORD_SET(bandLim) THEN plotBandLim = bandLim*1000.
+    MULTIPLOT,xAxis,yAxis                                                   $
+        ,PLOTGATE           = plotGate                                      $
+        ,PLOTBEAM           = plotBeam                                      $
+        ,BEAMARR            = selBeamArr                                    $
+        ,GATEARR            = selGateArr                                    $
+        ,/YSTYLE                                                            $
+        ,XTITLE             = 'Frequency [mHz]'                             $
+        ,XRANGE             = fftXRange                                     $
+        ,BANDLIM            = plotBandLim                                   $
+        ,/XSTYLE                                                            $
+        ,YTITLE             = TEXTOIDL('S(f) [(dB)^2]')                     $
+    ;    ,YRANGE             = fftYrange                                     $
+        ,XCHARSIZE          = 0.5                                           $
+        ,YCHARSIZE          = 0.5                                           $
+        ,GEOMETRY           = [3,3]
 
-PS_CLOSE
-
+    PS_CLOSE
+ENDIF   ; mpGL
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;Calculate Spectral Density Matrix
@@ -305,19 +323,33 @@ pf      = WHERE(freqVec GT 0)
 posFreqVec      = freqVec[pf]
 posSpectArr     = spectArr[pf,*,*]
 
-SAVE,FILENAME='spect.sav'
-PLOT_FULL_SPECTRUM
+IF gl GE 2 THEN BEGIN
+    SAVE,FILENAME='spect.sav'
+    PLOT_FULL_SPECTRUM
+ENDIF
 
 IF KEYWORD_SET(bandLim) THEN BEGIN
     ;blInx   = WHERE(ABS(freqVec) GE bandLim[0] AND ABS(freqVec) LE bandLim[1],cnt)
     blInx   = WHERE(posFreqVec GE bandLim[0] AND posFreqVec LE bandLim[1],cnt)
     IF cnt NE 0 THEN BEGIN
-        spectOfInt   = posSpectArr[blInx,*,*]
+        spectOfInt      = posSpectArr[blInx,*,*]
+        freqVecOfInt    = posFreqVec[blInx]
     ENDIF ELSE BEGIN
         PRINT,'WARNING: Spectrum of interest not available.'
         STOP
     ENDELSE
-ENDIF ELSE spectOfInt  = spectArr
+ENDIF ELSE BEGIN
+    spectOfInt          = posSpectArr
+    freqVecOfInt        = posFreqVec
+ENDELSE
+    
+
+;Find the dominant frequency within the passband.
+nPf     = N_ELEMENTS(spectOfInt[*,0,0])
+avg_psd = FLTARR(nPf)
+FOR ff=0,nPf-1 DO avg_psd[ff]=MEAN(ABS(spectOfInt[ff,*,*]))
+fMaxVal = MAX(avg_psd,fMaxInx)
+fMax    = freqVecOfInt[fMaxInx]
 
 llInxTable   = FLTARR(5,nCells)
 FOR ll=0,nCells-1 DO BEGIN
@@ -333,7 +365,7 @@ FOR ll=0,nCells-1 DO BEGIN
     ENDFOR      ;mm
 ENDFOR  ;ll
 
-IF KEYWORD_SET(graphicsLevel) THEN BEGIN
+IF gl GE 3 THEN BEGIN
     file    = DIR('output/kmaps/kspect/dlm_abs.ps',/PS)
     CLEAR_PAGE,/NEXT
     data   = ABS(dlm)
@@ -384,7 +416,7 @@ ENDIF
 
 
 ;Real Part
-IF KEYWORD_SET(graphicsLevel) THEN BEGIN
+IF gl GE 3 THEN BEGIN
     file    = DIR('output/kmaps/kspect/dlm_re.ps',/PS)
     CLEAR_PAGE,/NEXT
     data    = REAL_PART(dlm)
@@ -437,7 +469,7 @@ IF KEYWORD_SET(graphicsLevel) THEN BEGIN
 ENDIF
 
 ;Imaginary Part
-IF KEYWORD_SET(graphicsLevel) THEN BEGIN
+IF gl GE 3 THEN BEGIN
     file    = DIR('output/kmaps/kspect/dlm_im.ps',/PS)
     CLEAR_PAGE,/NEXT
 
@@ -511,8 +543,19 @@ evecs = LA_EIGENVEC(H,Q,EIGENINDEX=eigenindex,PERMUTE_RESULT=permute,SCALE_RESUL
 dx      = ABS(MAX(lr[0,1:nselbeams-1,*]-lr[0,0:nselBeams-2,*]))
 dy      = ABS(MAX(lr[1,*,1:nselgates-1]-lr[1,*,0:nselgates-2]))
 
-kx_max  = !PI / dx
-ky_max  = !PI / dy
+IF ~KEYWORD_SET(kx_max) THEN BEGIN
+    kx_max  = !PI / dx
+ENDIF ELSE IF (kx_max GT !PI / dx) THEN BEGIN
+    kx_max  = !PI / dx
+ENDIF
+    
+IF ~KEYWORD_SET(ky_max) THEN BEGIN
+    ky_max  = !PI / dy
+ENDIF ELSE IF (ky_max GT !PI / dy) THEN BEGIN
+    ky_max  = !PI / dy
+ENDIF
+
+;IF ~KEYWORD_SET(ky_max) THEN ky_max  = !PI / dy
 
 nkx     = CEIL(2*kx_max/dkx)
 IF nkx MOD 2 EQ 0 THEN ++nkx
@@ -571,10 +614,11 @@ FOR kk_kx=0,nkx-1 DO BEGIN
     ENDFOR  ;kk_ky
 ENDFOR      ;kk_kx
 t1      = SYSTIME(1) - t0
+
 PRINFO,'K-array calculation time: ' + NUMSTR(t1,1) + ' sec'
 SAVE,FILENAME='karr.sav'
 
-PLOT_KARR
-
-STOP
+IF gl GE 2 THEN BEGIN
+    PLOT_KARR
+ENDIF
 END

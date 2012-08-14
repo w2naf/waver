@@ -5,6 +5,10 @@ COMMON WAVE_BLK
 
 @event
 
+;radarVec        = ['gbr']
+;startDate       = 20101101
+;nDays           = 366
+
 thick           = 4
 !P.THICK        = thick
 !X.THICK        = thick
@@ -51,10 +55,11 @@ SET_FORMAT,/PORTRAIT,/SARDINES
         winLen             = wave_dataproc_info.winLen
         stepLen            = wave_dataproc_info.stepLen
 
-        STOP
 
         fbl             = NUMSTR(bandLim*1E6)
-        fileName$       = DIR('output/'                         $
+        dir$            = 'output/ulfsw/'
+        SPAWN,'mkdir -p ' + dir$
+        fileName$       = DIR(dir$                              $
                         + NUMSTR(date)                          $
                         + '.' + radar                           $
                         + '.' + fbl[0]                          $

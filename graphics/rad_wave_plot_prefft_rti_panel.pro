@@ -1,4 +1,5 @@
 PRO RAD_WAVE_PLOT_PREFFT_RTI_PANEL,xmaps,ymaps,xmap,ymap        $
+    ,YTITLE             = yTitle                                $
     ,YRANGE             = yRange                                $   
     ,COORDS             = coords                                $
     ,DATE               = _date                                 $   
@@ -12,6 +13,7 @@ PRO RAD_WAVE_PLOT_PREFFT_RTI_PANEL,xmaps,ymaps,xmap,ymap        $
     ,WITH_INFO          = with_info                             $   
     ,FIRST              = first                                 $   
     ,LAST               = last                                  $   
+    ,CHARSIZE           = charSize                              $
     ,VERBOSE            = verbose
 
 COMMON WAVE_BLK
@@ -108,7 +110,7 @@ zRange = 0.80 * [-zr,zr]
 zeroInx = WHERE(preFFTRTI EQ 0,cnt)
 
 IF cnt GT 0 THEN preFFTRTI[zeroInx] = !VALUES.F_NAN
-image   = GET_COLOR_INDEX(preFFTRTI,COLORSTEPS=GET_NCOLORS(),SCALE=zRange,PARAM='velocity',/NAN,/ROTATE)
+image   = GET_COLOR_INDEX(preFFTRTI,COLORSTEPS=GET_NCOLORS(),SCALE=zRange,PARAM='velocity',/NAN)
 image   = TRANSPOSE(REFORM(image,SIZE(preFFTRTI,/DIMENSIONS)))
 
 _xTitle         = 'Time (UT) - '+date$

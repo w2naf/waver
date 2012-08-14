@@ -1,4 +1,5 @@
 PRO RAD_WAVE_PLOT_INTPSD_RTI_PANEL,xmaps,ymaps,xmap,ymap        $
+    ,YTITLE             = yTitle                                $
     ,YRANGE             = yrange                                $   
     ,DATE               = _date                                 $   
     ,TIME               = _time                                 $   
@@ -13,6 +14,7 @@ PRO RAD_WAVE_PLOT_INTPSD_RTI_PANEL,xmaps,ymaps,xmap,ymap        $
     ,FIRST              = first                                 $
     ,LAST               = last                                  $
     ,COORDS             = coords                                $
+    ,CHARSIZE           = charSize                              $
     ,VERBOSE            = verbose
 
 COMMON WAVE_BLK

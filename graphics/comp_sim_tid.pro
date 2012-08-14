@@ -1,20 +1,22 @@
 ; Plot stuff! ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+FOR step=0,N_ELEMENTS(rgNormalArr[*,0,0])-1 DO BEGIN
+OPEN_LOOP_PLOT,'output/kmaps/','simulate',step
 SET_FORMAT,/LANDSCAPE,/SARDINES
-file    = DIR('output/kmaps/comp_sim_tid.ps',/PS)
+;file    = DIR('output/kmaps/comp_sim_tid.ps',/PS)
 
 SET_PARAMETER,param
-scale1              = GET_DEFAULT_RANGE(param)
+scale1  = GET_DEFAULT_RANGE(param)
+scale2  = scale1
 
-maxVal2         = CEIL(MAX(rgNormalArr,/NAN))
-IF MIN(rgNormalArr,/NAN) LT 0 THEN BEGIN
-    scale2      = maxVal2 * [-1.,1.]
-ENDIF ELSE BEGIN
-    scale2      = maxVal2 * [  0,1.]
-ENDELSE
+;maxVal2         = CEIL(MAX(rgNormalArr,/NAN))
+;IF MIN(rgNormalArr,/NAN) LT 0 THEN BEGIN
+;    scale2      = maxVal2 * [-1.,1.]
+;ENDIF ELSE BEGIN
+;    scale2      = maxVal2 * [  0,1.]
+;ENDELSE
+;IF maxVal2 LT 10 THEN format2   = '(F3.1)'
 
-IF maxVal2 LT 10 THEN format2   = '(F3.1)'
 
-FOR step=0,N_ELEMENTS(rgNormalArr[*,0,0])-1 DO BEGIN
     dataArr1            = REFORM(interpData[step,*,*])
     dataArr2            = REFORM(rgNormalArr[step,*,*])
     scan_startJul       = scan_sJulVec[step]
@@ -86,9 +88,21 @@ FOR step=0,N_ELEMENTS(rgNormalArr[*,0,0])-1 DO BEGIN
         ,YCHARSIZE      = 0.6                                                   $   
         ,POSITION       = posit
 
+data    = dataArr1
+sd      = STDDEV(data)
+nDec    = 1
+max$ = NUMSTR(MAX(data,/NAN),nDec)
+min$ = NUMSTR(MIN(data,/NAN),nDec)
+mean$ =NUMSTR(MEAN(data),nDec)
+sd$  = NUMSTR(sd,nDec)
+var$ = NUMSTR(sd^2,nDec)
+txt$ = 'Max: ' + max$ + ' Min: ' + min$ + ' Mean: ' + mean$ + TEXTOIDL(' \sigma: ') + sd$ $
+     + TEXTOIDL(' \sigma^2: ') + var$
+XYOUTS,posit[0],0.03,txt$,CHARSIZE=0.75,/NORMAL
+
 
     ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; 
-    ;Plot data without Range Gate Normalization
+    ;Plot simulated data.
     SET_SCALE,scale2 
     posit           =  DEFINE_PANEL(2,3,1,1,/BAR)
     posit[3]        = (DEFINE_PANEL(2,3,1,0,/BAR))[3]
@@ -142,7 +156,7 @@ FOR step=0,N_ELEMENTS(rgNormalArr[*,0,0])-1 DO BEGIN
 ;        ,/BAR
 
     ;PLOT_COLORBAR,2,2,1,0,CHARSIZE=0.75,SCALE=scale2,LEVEL_FORMAT='(F3.1)'
-    PLOT_COLORBAR,CHARSIZE=0.75,SCALE=scale2,LEVEL_FORMAT=format2,PANEL_POSITION=posit,/KEEP
+    PLOT_COLORBAR,CHARSIZE=0.75,SCALE=scale2,LEVEL_FORMAT=format2,PANEL_POSITION=posit;,/KEEP
 
     posit           = DEFINE_PANEL(2,3,1,2,/BAR,/WITH_INFO)
     posit[0]    += xnudge
@@ -153,6 +167,22 @@ FOR step=0,N_ELEMENTS(rgNormalArr[*,0,0])-1 DO BEGIN
         ,XCHARSIZE      = 0.6                                                   $   
         ,YCHARSIZE      = 0.6                                                   $   
         ,POSITION       = posit
+
+data    = dataArr2
+sd      = STDDEV(data)
+nDec    = 1
+max$ = NUMSTR(MAX(data,/NAN),nDec)
+min$ = NUMSTR(MIN(data,/NAN),nDec)
+mean$ =NUMSTR(MEAN(data),nDec)
+sd$  = NUMSTR(sd,nDec)
+var$ = NUMSTR(sd^2,nDec)
+txt$ = 'Max: ' + max$ + ' Min: ' + min$ + ' Mean: ' + mean$ + TEXTOIDL(' \sigma: ') + sd$ $
+     + TEXTOIDL(' \sigma^2: ') + var$
+XYOUTS,posit[0],0.03,txt$,CHARSIZE=0.75,/NORMAL
+;PS_CLOSE
+;DEVICE,/CLOSE
+;STOP
+DEVICE,/CLOSE
 ENDFOR
 
-PS_CLOSE
+;PS_CLOSE

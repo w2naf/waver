@@ -1,6 +1,9 @@
-PRO GSPOS,GL=gl,TEST=test
+PRO GSPOS
 COMMON RAD_DATA_BLK
-@event
+COMMON MUSIC_PARAMS
+
+SPAWN,'mkdir -p output/kmaps'
+
 thick           = 4 
 !P.THICK        = thick
 !X.THICK        = thick
@@ -16,7 +19,7 @@ SET_PARAMETER,param
 RAD_SET_SCATTERFLAG,scatterFlag
 
 IF  N_ELEMENTS(date) EQ 1 THEN date = date[0] * [1,1]
-RAD_FIT_READ,date,radar,TIME=time,FILTER=filter,AJGROUND=ajground
+RAD_FIT_READ,date,STRLOWCASE(radar),TIME=time,FILTER=filter,AJGROUND=ajground
 inx             = RAD_FIT_GET_DATA_INDEX()
 
 TIMESTEP,date,time,dateVec,timeVec,STEP=timeStep,JULS=julVec,/ODD
@@ -34,6 +37,10 @@ scanStepVec = scanStepVec[UNIQ(scanStepVec)]
 nScanSteps  = N_ELEMENTS(scanStepVec)
 
 FOR step=scanStart,nScanSteps-1  DO BEGIN
+    PRINFO,'Time step ' + NUMSTR(step) + ' of ' + nSteps$
+    PRINT,'Starting position calculations.'
+    t0                  = SYSTIME(1)
+
     scan_number = scanStepVec[step]
 
     stId            =  (*RAD_FIT_INFO[inx]).id
@@ -75,16 +82,12 @@ FOR step=scanStart,nScanSteps-1  DO BEGIN
     nBeams              = (SIZE(dataArr,/DIM))[0]
     nGates              = (SIZE(dataArr,/DIM))[1]
 
-    PRINFO,'Time step ' + NUMSTR(step) + ' of ' + nSteps$
-    PRINT,'Starting position calculations.'
-    t0                  = SYSTIME(1)
+    ;Calculate positions... this could probably be optimized better.
     ctrArr              = RAD_FIT_RBPOS_SCAN(scan_number,/CENTER)
     bndArr              = RAD_FIT_RBPOS_SCAN(scan_number)
 
     ctrArr              = ctrArr[*,local_inx,*]
     bndArr              = bndArr[*,*,*,local_inx,*] 
-    t1                  = SYSTIME(1) - t0
-    PRINT,'Position Calculation Time: ' + NUMSTR(t1,1) + ' sec'
 
     IF ~KEYWORD_SET(loopComplete) THEN BEGIN
         PRINFO,'NOTICE: Assuming same scan mode across time period of interest.'
@@ -155,6 +158,7 @@ FOR step=scanStart,nScanSteps-1  DO BEGIN
         kx_data         = !PI / dx_data         ;Best case kx data selection can support
         ky_data         = !PI / dy_data         ;Best case ky data selection can support
 
+
         IF kx_data LE kx_min THEN BEGIN
             PRINFO,'Warning!!!! Kx Nyquist Violation!'
             PRINT,'Requested Minumum Kx: ' + NUMSTR(kx_min,4)
@@ -207,6 +211,15 @@ FOR step=scanStart,nScanSteps-1  DO BEGIN
 
         lr              = LRD(sel_ctrArr_grid,XCTR=xCtr,YCTR=yCtr,CTRLAT=ctrLat,CTRLON=ctrLon)
         lrBnd           = LRD_BND(sel_bndArr_grid,CTRLAT=ctrLat,CTRLON=ctrLon)
+
+        ;AACGM Computations
+        height  = 300
+        aacgm   = CNVCOORD(ctrLat,ctrLon,height)
+        ctrJul  = (sjul + fjul) / 2.
+        yrYrsec = JUL2YRYRSEC(ctrJul)
+        ctrMLat = aacgm[0]
+        ctrMlon = aacgm[1]
+        ctrMLT  = MLT(yrYrsec[0],yrYrsec[1],ctrMlon)
 
         ctrBm   = selBeamVec[xCtr]
         ctrRg   = selGateVec[yCtr]
@@ -271,37 +284,49 @@ FOR step=scanStart,nScanSteps-1  DO BEGIN
     ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
     IF KEYWORD_SET(gl) THEN BEGIN
         
-        
-        IF ~KEYWORD_SET(loopComplete) THEN BEGIN
+        IF ~KEYWORD_SET(loopComplete) AND gl GE 2 THEN BEGIN
             file    = DIR('output/kmaps/lrd.ps',/PS)
             @plot_lrd.pro
             PS_CLOSE
         ENDIF
+        
+        IF gl GE 3 THEN BEGIN
+            OPEN_LOOP_PLOT,'output/kmaps/','beam_interp',step
+            @plot_beam_interp.pro
+            PS_CLOSE
+        ENDIF
 
-        OPEN_LOOP_PLOT,'output/kmaps/','beam_interp',step
-        @plot_beam_interp.pro
-        PS_CLOSE
+        IF gl GE 3 THEN BEGIN
+            OPEN_LOOP_PLOT,'output/kmaps/','gs_range',step
+            @comp_gs_rang.pro
+            PS_CLOSE
+        ENDIF
 
-        OPEN_LOOP_PLOT,'output/kmaps/','gs_range',step
-        @comp_gs_rang.pro
-        PS_CLOSE
+        IF gl GE 3 THEN BEGIN
+            OPEN_LOOP_PLOT,'output/kmaps/','raw_interp',step
+            @comp_raw_interp.pro
+            PS_CLOSE
+        ENDIF
 
-        OPEN_LOOP_PLOT,'output/kmaps/','raw_interp',step
-        @comp_raw_interp.pro
-        PS_CLOSE
-
-        OPEN_LOOP_PLOT,'output/kmaps/','movie',step
-        @plot_interp_movie_frame.pro
-        PS_CLOSE
+        IF gl GE 2 THEN BEGIN
+            OPEN_LOOP_PLOT,'output/kmaps/','movie',step
+            @plot_interp_movie_frame.pro
+            PS_CLOSE
+        ENDIF
     ENDIF       ;Graphics Level
 
     IF KEYWORD_SET(test) THEN STOP
     loopComplete        = 1
+
+    t1                  = SYSTIME(1) - t0
+    PRINT,'Timestep Loop Calculation Time: ' + NUMSTR(t1,1) + ' sec'
+    PRINT,''
+    PRINT,''
 ENDFOR  ;Timestep Loop - step
 SAVE
 
-PRINFO,'Press .c to run kspect2.pro.'
-STOP
+;PRINFO,'Press .c to run kspect2.pro.'
+;STOP
 
 KSPECT2
 END

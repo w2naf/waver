@@ -128,7 +128,7 @@ FOR beam=0,nBeams-1 DO BEGIN
     RAD_SET_BEAM,beam
     PRINFO,NUMSTR(beam)
     beamInx         = WHERE((*rad_fit_data[data_index]).beam EQ beam,cnt)
-    IF cnt EQ 0 THEN CONTINUE
+    IF cnt LE 1 THEN CONTINUE
     julVec          = (*rad_fit_data[data_index]).juls[beamInx]
     gscatter        = (*rad_fit_data[data_index]).gscatter[beamInx,*]
     smSep           = (*rad_fit_data[data_index]).smsep[beamInx,*]

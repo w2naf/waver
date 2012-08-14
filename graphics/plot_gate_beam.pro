@@ -2,7 +2,7 @@ PRO PLOT_GATE_BEAM,positionArr,colorArr                         $
     ,XVALS              = xVals                                 $
     ,YVALS              = yVals                                 $
     ,XTITLE             = xTitle                                $
-    ,YTITLE             = ryitle                                $
+    ,YTITLE             = yTitle                                $
     ,XRANGE             = xRange                                $
     ,YRANGE             = yRange                                $
     ,XSTYLE             = xStyle                                $
@@ -65,6 +65,8 @@ IF ~KEYWORD_SET(yTitle) THEN BEGIN
         'lat' : yTitle = 'Latitude [deg]'
     ENDCASE
 ENDIF
+
+IF N_ELEMENTS(yStyle) EQ 0 THEN yStyle=1
 
 PLOT,[0,0],/NODATA                                              $
     ,XTITLE             = xTitle                                $

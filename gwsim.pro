@@ -42,12 +42,13 @@ IF KEYWORD_SET(keep_lr) THEN BEGIN
     ygrid       = REFORM(lr[1,*,*])
 ENDIF
 
-;sigs           = [amp,  kx,  ky,  f, phi]
-nSigs           = 3
-sigs            = FLTARR(nSigs,5)
-sigs[0,*]       = [1, 0,  -0.02, 0.0004, 0]
-sigs[1,*]       = [2, -0.02,  0, 0.0006, 0]
-sigs[2,*]       = [4, -0.04,  0.04, 0.0006, 0]
+;sigs           = [amp,  kx,  ky,  f, phi, dcoffset]
+nSigs           = 2
+sigs            = FLTARR(nSigs,6)
+sigs[0,*]       = [ 5, 0.01 ,  -0.010, 0.0004, 0,  5.]
+sigs[1,*]       = [ 5, 0.022,  -0.023, 0.0004, 0,  5.]
+;sigs[1,*]       = [2, -0.02,  0, 0.0006, 0]
+;sigs[2,*]       = [4, -0.04,  0.04, 0.0006, 0]
 ;sigs[0,*]       = [2, -0.02, 0, 0.0005, 0]
 ;sigs[0,*]       = [30, -0.0141,  -0.0141, 0.0003, 0]
 
@@ -70,6 +71,7 @@ FOR step=0,nSteps-1 DO BEGIN
         ky      = sigs[kk,2]
         f       = sigs[kk,3]
         phi     = sigs[kk,4]
+        dc      = sigs[kk,5]
         
         IF 1./dt LE 2.*f THEN BEGIN
             PRINT,'WARNING: Nyquist Violation in f.'
@@ -86,7 +88,7 @@ FOR step=0,nSteps-1 DO BEGIN
             PRINT,'Signal #: ' + NUMSTR(kk)
         ENDIF
 
-        temp    = amp * COS(kx*xgrid + ky*ygrid - 2*!PI*f*t + phi)
+        temp    = amp * COS(kx*xgrid + ky*ygrid - 2*!PI*f*t + phi) + dc
         dataArr[step,*,*] += temp
     ENDFOR
 ENDFOR
@@ -100,6 +102,7 @@ FOR xx=0,nx-1 DO BEGIN
 ENDFOR
 
 noise_on=1
+nf      = 63   ;Noise Factor
 noise_rms = FLTARR(nx,ny)
 IF KEYWORD_SET(noise_on) THEN BEGIN
     seed    = 0
@@ -107,12 +110,34 @@ IF KEYWORD_SET(noise_on) THEN BEGIN
     FOR xx=0,nx-1 DO BEGIN
         FOR yy=0,ny-1 DO BEGIN
         s           = TEMPORARY(seed)
-        noise       = RANDOMN(seed,nSteps)
+        noise       = nf*RANDOMN(seed,nSteps)
         noise_rms[xx,yy] = SQRT(MEAN(noise^2))
         dataArr[*,xx,yy]    += noise
         ENDFOR
     ENDFOR
 ENDIF
+
+
+
+xx      = FINDGEN(ny)
+mu      = (ny-1)/2.
+sigma2  = 10.0
+sigma   = SQRT(sigma2)
+rgDist  = 1/(sigma*SQRT(2*!PI)) * EXP(-0.5 * ((xx-mu)/sigma)^2)
+rgDist  = rgDist / MAX(rgDist)
+
+mask    = FLTARR(nx,ny)
+FOR nn=0,nx-1 DO mask[nn,*] = rgDist
+
+mask3d  = FLTARR(nsteps,nx,ny)
+FOR nn=0,nSteps-1 DO mask3d[nn,*,*] = mask
+
+;Apply Range Gate Dependence
+dataArr = dataArr * mask3d
+
+;CLEAR_PAGE
+;PLOT,xx,rgDist
+;stop
 
 snr     = (sig_rms/noise_rms)^2
 snr_db  = 10*ALOG10(snr)
