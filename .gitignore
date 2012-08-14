@@ -1,6 +1,6 @@
-fitdata/
-psdsav/
+data/
 output/
+jobs/
 *.swp
 *.sav
 *~

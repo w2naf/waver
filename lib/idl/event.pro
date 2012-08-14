@@ -9,7 +9,7 @@ rtiCoords       = 'rang'
 dbScale         = 1
 
 ;;;;;;;;;;;;;;;;;;;;;;;;
-psdDir          = '/data/waver/psdsav/'
+;psdDir          = '/data/waver/psdsav/'
 date            = [20080714,20080714]
 startDate       = [20080714]
 ;date            = [20101011,20101011]
