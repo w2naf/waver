@@ -18,13 +18,14 @@ class sig(object):
     defaults.xlabel = 'Time [UT]'
     defaults.title  = 'Untitled Plot'
 
-    #self.metadata = attrdict(defaults.items() + metadata.items())
+    self.metadata = attrdict(defaults.items() + metadata.items())
+    self.items = metadata.items()
 
-    self.raw = sigStruct(dtv, data)
+    self.raw = sigStruct(dtv, data, parent=self)
 
 class sigStruct(sig):
-  #def __init__(self, dtv, data, dtStart=0, dtEnd=0, ylabel='Unlabeled Y-Axis'):
-  def __init__(self, dtv, data, **metadata):
+  def __init__(self, dtv, data, parent=0, **metadata):
+    self.parent = parent
     """Define a vtsd sigStruct object.
 
     :param dtv: datetime.datetime list
@@ -36,22 +37,28 @@ class sigStruct(sig):
     self.data     = data
     self.metadata = attrdict({})
 
+    for key in metadata:
+      print "%s: %s" % (key, metadata[key])
+
+    for key in metadata:
+      self.metadata[key] = metadata[key]
+
   def plot(self):
     from matplotlib import pyplot as mp
 
+    metadata = attrdict(self.parent.metadata.items() + self.metadata.items())
+
+    fig = mp.figure()
+    mp.plot(self.dtv,self.data)
+    fig.autofmt_xdate()
+
+    if 'dtStart' in metadata:
+      mp.xlim(xmin=metadata.dtStart)
+    if 'dtEnd' in metadata:
+      mp.xlim(xmax=metadata.dtEnd)
+
+    mp.xlabel(metadata.xlabel)
+    mp.ylabel(metadata.ylabel)
+    mp.title(metadata.title)
+
     return super(sigStruct, self)
-
-#    metadata = attrdict(self.parent.metadata.items() + self.metadata.items())
-#
-#    fig = mp.figure()
-#    mp.plot(self.dtv,self.data)
-#    fig.autofmt_xdate()
-#
-#    if 'dtStart' in metadata:
-#      mp.xlim(xmin=metadata.dtStart)
-#    if 'dtEnd' in metadata:
-#      mp.xlim(xmax=metadata.dtEnd)
-#    mp.xlabel(metadata.xlabel)
-#    mp.ylabel(metadata.ylabel)
-#    mp.title(metadata.title)
-
