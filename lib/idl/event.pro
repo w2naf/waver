@@ -1,6 +1,22 @@
-;GBR Event
-radarVec        = ['rkn']
-radar           = radarVec
+;Hyomin's Events
+
+;Event 1
+radarVec        = ['sas','kap','gbr','sto','pyk','han']
+;radarVec        = ['sye','sys','san','hal']
+date            = [19980515,19980515]
+startDate       = [19980515]
+time            = [1430, 1530]
+
+;;Event 2
+;radarVec        = ['kod','pgr','sas','kap','gbr','sto','pyk','han']
+;radarVec        = ['tig','ker','sye','sys','san','hal']
+;date            = [20001126,20001126]
+;startDate       = [20001126]
+;time            = [1140, 1240]
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+radar           = radarVec[0]
 
 ;Used in power rti visualization
 rtiCoords       = 'rang'
@@ -9,13 +25,7 @@ rtiCoords       = 'rang'
 dbScale         = 1
 
 ;;;;;;;;;;;;;;;;;;;;;;;;
-;psdDir          = '/data/waver/psdsav/'
-date            = [20080714,20080714]
-startDate       = [20080714]
-;date            = [20101011,20101011]
-;startDate       = [20101011]
 ndays           = 1
-time            = [1900, 2400]
 beam            = 7
 
 param           = 'velocity'
@@ -33,7 +43,8 @@ interp          = 30.
 detrend         = -1
 noHanning       = 0
 exclude         = [-500.,500.]
-scatterFlag     = 2
+;scatterflag: 0: all 1: ground 2: ionos 3: mark ground
+scatterFlag     = 0
 
 pctPwrThresh    = 0.04
 fndPwrThresh    = 0.60
