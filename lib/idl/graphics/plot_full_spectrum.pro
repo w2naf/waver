@@ -39,15 +39,39 @@ dims            = SIZE(data,/DIM)
 image           = GET_COLOR_INDEX(data,PARAM='power',SCALE=specScale,/CONTINUOUS,/NAN)
 image           = REFORM(image,dims)
 
+IF N_ELEMENTS(bandLim) EQ 2 THEN BEGIN
+  bl0_inx = WHERE(posPlotFreqVec GE bandLim[0],cnt)
+  IF cnt GT 0 THEN BEGIN
+    bl0_inx = bl0_inx[0]
+    bl0 = posPlotFreqVec[bl0_inx]
+  ENDIF ELSE bl0 = !VALUES.F_NAN
+
+  bl1_inx = WHERE(posPlotFreqVec LE bandLim[1],cnt)
+  IF cnt GT 0 THEN BEGIN
+    bl1_inx = bl1_inx[cnt-1]
+    bl1 = posPlotFreqVec[bl1_inx]
+  ENDIF ELSE bl1 = !VALUES.F_NAN
+ENDIF ELSE BEGIN
+  bl0_inx = 0
+  bl0 = posPlotFreqVec[bl0_inx]
+  bl1_inx = bl1_inx[nPf-1]
+  bl1 = posPlotFreqVec[bl1_inx]
+ENDELSE
+
 ;Average PSD
 avg_psd         = FLTARR(nPf)
-FOR ff=0,nPf-1 DO avg_psd[ff] = MEAN(data[ff,*,*])
+FOR ff=bl0_inx,bl1_inx DO avg_psd[ff] = MEAN(data[ff,*,*])
 avg_psd         = avg_psd/MAX(avg_psd) * scMax
 avg_image       = GET_COLOR_INDEX(avg_psd,PARAM='power',SCALE=specScale,/CONTINUOUS,/NAN)
 
 
 posit           = DEFINE_PANEL(1,1,0,0,/BAR)
 subtitle        = STRUPCASE(radar) + ' ' + JUL2STRING(sJul) + ' - ' + JUL2STRING(fJul)
+
+IF N_ELEMENTS(bandLim) EQ 2 THEN BEGIN
+  bl$ = 'Band: ' + NUMSTR(bandLim[0]*1000.,2) + ' - ' + NUMSTR(bandLim[1]*1000.,2) + ' mHz'
+  subtitle = subtitle + '!C' + bl$
+ENDIF
 
 ;New color tables!!
 
@@ -72,7 +96,6 @@ PLOT,xvals,yvals,/NODATA                                $
     ,POSITION           = posit
 
 ;Plot Spectrum
-
 sep     = 0.1
 FOR ff=0UL,npf-1 DO BEGIN
     FOR bb=0UL,nSelBeams-1 DO BEGIN
@@ -124,6 +147,16 @@ FOR ff=0,npf-1 DO BEGIN
     OPLOT,ff*nSelBeams*[1,1],[-0.5,nSelGates+1],THICK=4,NOCLIP=1;,COLOR=GET_WHITE()
 ENDFOR
 
+;Plot bandlimit box.
+RAD_LOAD_COLORTABLE
+IF N_ELEMENTS(bandlim) EQ 2 THEN BEGIN
+  blThick=8
+  OPLOT,bl0_inx*nSelBeams*[1,1],[0,nSelGates],THICK=blThick,NOCLIP=1,COLOR=GET_RED()
+  OPLOT,(bl1_inx+1)*nSelBeams*[1,1],[0,nSelGates],THICK=blThick,NOCLIP=1,COLOR=GET_RED()
+  OPLOT,[bl0_inx*nSelBeams,(bl1_inx+1)*nSelBeams],[0,0],THICK=blThick,NOCLIP=1,COLOR=GET_RED()
+  OPLOT,[bl0_inx*nSelBeams,(bl1_inx+1)*nSelBeams],nSelGates*[1,1],THICK=blThick,NOCLIP=1,COLOR=GET_RED()
+ENDIF
+
 ;Y Ticks
 maxYTicks       = 10
 modY            = CEIL(nSelGates / FLOAT(maxYTicks))
@@ -155,6 +188,7 @@ ENDIF ELSE IF scMax LT 8 THEN BEGIN
     level_format = '(F12.2)'
 ENDIF ELSE IF N_ELEMENTS(level_format) NE 0 THEN s = TEMPORARY(level_format)
 
+DAVIT_LOADCT,ct
 PLOT_COLORBAR,1,1,0,0                                   $
     ,SCALE              = specScale                     $
     ,LEGEND             = 'ABS(Spectral Density)'       $

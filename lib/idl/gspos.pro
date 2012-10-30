@@ -1,3 +1,40 @@
+FUNCTION EXPAND_GRID,input_grid,beam_vec
+;This function expands the positions of a radar scan into an array that can be directly indexed
+;by beam number.  This is useful when a scan starts at something other than 
+;beam 0, or skips beams.
+  dims  = SIZE(input_grid,/DIM)
+  IF N_ELEMENTS(beam_vec) NE MAX(beam_vec)+1 THEN BEGIN ;Only do the conversion if it's actually needed.
+    CASE N_ELEMENTS(dims) OF
+      2: BEGIN
+          dims[0] = MAX(beam_vec)+1
+          output_grid = FLTARR(dims) + !VALUES.F_NAN
+          FOR ii=0,N_ELEMENTS(beam_vec)-1 DO BEGIN
+            bm = beam_vec[ii]
+            output_grid[bm,*] = input_grid[ii,*]
+          ENDFOR
+        END
+      3: BEGIN
+          dims[1] = MAX(beam_vec)+1
+          output_grid = FLTARR(dims) + !VALUES.F_NAN
+          FOR ii=0,N_ELEMENTS(beam_vec)-1 DO BEGIN
+            bm = beam_vec[ii]
+            output_grid[*,bm,*] = input_grid[*,ii,*]
+          ENDFOR
+        END
+      5: BEGIN
+          dims[3] = MAX(beam_vec)+1
+          output_grid = FLTARR(dims) + !VALUES.F_NAN
+          FOR ii=0,N_ELEMENTS(beam_vec)-1 DO BEGIN
+            bm = beam_vec[ii]
+            output_grid[*,*,*,bm,*] = input_grid[*,*,*,ii,*]
+          ENDFOR
+        END
+      ENDCASE
+    RETURN,output_grid
+  ENDIF
+  RETURN,input_grid
+END
+
 PRO GSPOS
 COMMON RAD_DATA_BLK
 COMMON MUSIC_PARAMS
@@ -60,10 +97,12 @@ FOR step=scanStart,nScanSteps-1  DO BEGIN
 
     beamVec             = (*rad_fit_data[inx]).beam[global_inx]
     dataArr             = (*rad_fit_data[inx]).power[global_inx,*]
+    dataArr             = EXPAND_GRID(dataArr,beamVec)
     badInx              = WHERE(dataArr EQ 10000, cnt)
     IF cnt NE 0 THEN dataArr[badInx] = !VALUES.F_NAN
 
     gscat               = (*rad_fit_data[inx]).gscatter[global_inx,*]
+    gscat               = EXPAND_GRID(gscat,beamVec)
     CASE scatterFlag OF
         1: BEGIN
             scatInx = WHERE(gscat EQ 0, cnt)
@@ -89,6 +128,9 @@ FOR step=scanStart,nScanSteps-1  DO BEGIN
     ctrArr              = ctrArr[*,local_inx,*]
     bndArr              = bndArr[*,*,*,local_inx,*] 
 
+    ctrArr              = EXPAND_GRID(ctrArr,beamVec)
+    bndArr              = EXPAND_GRID(bndArr,beamVec)
+
     IF ~KEYWORD_SET(loopComplete) THEN BEGIN
         PRINFO,'NOTICE: Assuming same scan mode across time period of interest.'
         ctrArr_no_gs        = RAD_FIT_RBPOS_SCAN(scan_number,/NO_GS,/CENTER)
@@ -96,13 +138,16 @@ FOR step=scanStart,nScanSteps-1  DO BEGIN
 
         ctrArr_no_gs        = ctrArr_no_gs[*,local_inx,*]
         bndArr_no_gs        = bndArr_no_gs[*,*,*,local_inx,*] 
+        ctrArr_no_gs        = EXPAND_GRID(ctrArr_no_gs,beamVec)
+        bndArr_no_gs        = EXPAND_GRID(bndArr_no_gs,beamVec)
 
         ctrArr_grid         = RAD_FIT_RBPOS_SCAN(scan_number,/ALWAYS_GS,/CENTER)
         bndArr_grid         = RAD_FIT_RBPOS_SCAN(scan_number,/ALWAYS_GS)
 
         ctrArr_grid         = ctrArr_grid[*,local_inx,*]
         bndArr_grid         = bndArr_grid[*,*,*,local_inx,*]
-
+        ctrArr_grid         = EXPAND_GRID(ctrArr_grid,beamVec)
+        bndArr_grid         = EXPAND_GRID(bndArr_grid,beamVec)
 
         IF KEYWORD_SET(dRange) AND ~KEYWORD_SET(gateRange) THEN BEGIN
             gateRange       = INTARR(2)
@@ -124,7 +169,6 @@ FOR step=scanStart,nScanSteps-1  DO BEGIN
            IF minGate GT gateRange[0] THEN gateRange[0] = minGate
         ENDIF
 
-
         IF ~KEYWORD_SET(dRange) AND KEYWORD_SET(gateRange) THEN BEGIN
             min             = FLOOR(MIN(bndArr[3,*,*,*,gateRange[0]]))
             max             = CEIL(MAX(bndArr[3,*,*,*,gateRange[1]]))
@@ -132,6 +176,9 @@ FOR step=scanStart,nScanSteps-1  DO BEGIN
         ENDIF
 
         IF ~KEYWORD_SET(beamRange) THEN beamRange = [MIN(beamVec), MAX(beamVec)]
+        IF beamRange[0] LT MIN(beamVec) THEN beamRange[0] = MIN(beamVec)
+        ;Expand the beam vector.
+        beamVec    = INDGEN(MAX(beamVec)+1)
 
         beamInxArr = INTARR(nbeams,ngates)
         gateInxArr = INTARR(nbeams,ngates)

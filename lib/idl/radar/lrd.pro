@@ -24,7 +24,6 @@ FOR xx=0,xdim-1 DO BEGIn
         lat     = ctrArr[0,xx,yy]
         lon     = ctrArr[1,xx,yy]
         
-        ;SUB_SPHAZM1,ctrLon,ctrLat,hgt,lon,lat,azm,range
         DISTANCE,ctrLat,ctrLon,lat,lon,range
         GETAZM,ctrLat,ctrLon,lat,lon,azm
         azm     = azm * !RADEG

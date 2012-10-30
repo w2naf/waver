@@ -8,8 +8,8 @@ inx     = RAD_FIT_GET_DATA_INDEX()
 scanInx = WHERE( (*rad_fit_data[inx]).beam_scan EQ scan_number)
 
 beamVec  = (*rad_fit_data[inx]).beam[scanInx]
-bmSort          = beamVec[SORT(beamVec)]
-bmUniq          = bmSort[UNIQ(bmSort)]
+bmSort   = beamVec[SORT(beamVec)]
+bmUniq   = bmSort[UNIQ(bmSort)]
 
 ;Find Global Index
 FOR kk=0,N_ELEMENTS(bmUniq)-1 DO BEGIN
