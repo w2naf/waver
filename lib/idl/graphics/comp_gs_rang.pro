@@ -17,6 +17,7 @@ RAD_FIT_PLOT_SCAN_PANEL                             $
     ,YRANGE             = mapYRange                 $
     ,SCAN_NUMBER        = scan_number               $
     ,ROTATE             = rotate                        $
+    ,SCALE              =scale                      $
     ,/NO_FILL                                       $
     ,POSITION           = posit
     
@@ -50,7 +51,7 @@ MAP_PLOT_PANEL                                          $
     ,POSITION           = posit
 
 ; clrArr          = REFORM(GET_COLOR_INDEX(interpArr,/NAN),[nBeams,nGates])
-clrArr          = REFORM(GET_COLOR_INDEX(dataArr,/NAN),[nBeams,nGates])
+clrArr          = REFORM(GET_COLOR_INDEX(dataArr,SCALE=scale,/NAN),[nBeams,nGates])
 FOR dd=0,N_ELEMENTS(clrArr)-1 DO BEGIN
     IF clrArr[dd] EQ GET_BACKGROUND() THEN CONTINUE
     bmGate      = ARRAY_INDICES(clrArr,dd)
@@ -127,7 +128,7 @@ RAD_FIT_PLOT_SCAN_TITLE,2,3,1,0                         $
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 posit           = DEFINE_PANEL(2,3,0,2,/BAR,/WITH_INFO)
-clrArr          = REFORM(GET_COLOR_INDEX(dataArr,/NAN),[nBeams,nGates])
+clrArr          = REFORM(GET_COLOR_INDEX(dataArr,/NAN,SCALE=scale),[nBeams,nGates])
 PLOT_GATE_BEAM,bndArr_no_gs,clrArr                                          $
     ,TITLE          = 'No Range Adjustment, All Data'                       $
     ,YVALS          = beamVec                                               $
@@ -138,7 +139,7 @@ PLOT_GATE_BEAM,bndArr_no_gs,clrArr                                          $
     ,POSITION       = posit
 
 posit           = DEFINE_PANEL(2,3,1,2,/BAR,/WITH_INFO)
-clrArr          = REFORM(GET_COLOR_INDEX(dataArr,/NAN),[nBeams,nGates])
+clrArr          = REFORM(GET_COLOR_INDEX(dataArr,/NAN,SCALE=scale),[nBeams,nGates])
 PLOT_GATE_BEAM,bndArr,clrArr                                                $
     ,TITLE          = 'Range Adjusted, DRANGE Applied'                      $
     ,YTITLE         = 'GS Adjusted Range'                                   $
@@ -150,4 +151,4 @@ PLOT_GATE_BEAM,bndArr,clrArr                                                $
     ,YCHARSIZE      = 1.4                                                   $
     ,POSITION       = posit
 
-PLOT_COLORBAR,2,1,1,0,CHARSIZE=0.60
+PLOT_COLORBAR,2,1,1,0,CHARSIZE=0.60,SCALE=scale

@@ -14,8 +14,7 @@ _ytickname      = 0
 
 xrange  = [0,MAX(ctrArr_grid[3,*,*])]
 
-ymax    = MAX(interparr[0:plotBeam-1,*])
-yrange  = [0,ymax]
+IF KEYWORD_SET(scale) THEN yrange = scale ELSE yrange = GET_SCALE()
 
 posit   = DEFINE_PANEL(3,3,0,0)
 FOR pp=0,plotBeam-1 DO BEGIN

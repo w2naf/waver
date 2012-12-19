@@ -81,6 +81,9 @@ IF N_ELEMENTS(inx) NE 0 THEN BEGIN
     kx_max          = FLOAT(kmax)
     ky_max          = FLOAT(kmax)
     foi             = FLOAT(STRSPLIT(foi,',',/EXTRACT))/1000.
+    fir_date        = LONG([fir_date0, fir_date1])
+    fir_time        = FIX([fir_time0, fir_time1])
+    fir_scale       = FLOAT([fir_scale0,fir_scale1])
     RAD_SET_BEAM,FIX(beam)
 ENDIF
 END
@@ -104,6 +107,7 @@ runJul  = SYSTIME(/JUL)
 SFJUL,runDate,runTime,runJul,/JUL_TO_DATE
 run_id  = STRING(runDate[0],FORMAT='(I08)') + '.' + STRING(runTime[0],FORMAT='(I04)')
 
+SPAWN,'rm -Rf output/current_run'
 SPAWN,'mkdir -p output/current_run'
 OPENW,1,'output/current_run/.run_id'
 PRINTF,1,run_id
@@ -112,11 +116,13 @@ CLOSE,1
 FOR ee=0,n_events-1 DO BEGIN
     LOAD_MUSIC_EVENTS,datFile,INX=ee
 
+    SPAWN,'rm -Rf output/kmaps'
     SPAWN,'mkdir -p output/kmaps'
     SPAWN,'cp '+datFile+' output/kmaps/'
     APPEND_RUN_ID,'output/kmaps/'+datfile
 
     GSPOS
+;    KSPECT2
     dirName = NUMSTR(date[0])                               $
             + '.' + STRING(time[0],FORMAT='(I04)')          $
             + '-' + STRING(time[1],FORMAT='(I04)')          $
@@ -128,8 +134,7 @@ FOR ee=0,n_events-1 DO BEGIN
     SPAWN,'mv output/kmaps/kspect/fullspect.png output/kmaps/'
     SPAWN,'mv output/kmaps/kspect/karr.png output/kmaps/'
     SPAWN,'mv output/kmaps/kspect/karr.txt output/kmaps/'
-
-    STOP
+;stop
     SPAWN,'mv output/kmaps output/current_run/'+dirName
 ENDFOR
 

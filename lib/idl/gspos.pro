@@ -49,11 +49,12 @@ thick           = 4
 
 scanStart       = 0 
 
-rotate             = lrdRotate
+rotate          = lrdRotate
 
 SET_COORDINATES,coord
 SET_PARAMETER,param
 RAD_SET_SCATTERFLAG,scatterFlag
+IF ~KEYWORD_SET(scale) THEN scale = GET_SCALE()
 
 IF  N_ELEMENTS(date) EQ 1 THEN date = date[0] * [1,1]
 RAD_FIT_READ,date,STRLOWCASE(radar),TIME=time,FILTER=filter,AJGROUND=ajground
@@ -72,8 +73,11 @@ FOR step=0,nSteps-1 DO BEGIN
 ENDFOR
 scanStepVec = scanStepVec[UNIQ(scanStepVec)]
 nScanSteps  = N_ELEMENTS(scanStepVec)
+scan_ids = LONARR(nScanSteps)
 
 FOR step=scanStart,nScanSteps-1  DO BEGIN
+    PRINFO,'We are working on radar: '+strupcase(radar)
+    PRINFO,'Time range: '+JUL2STRING(sJul)+' to '+JUL2STRING(fJul)
     PRINFO,'Time step ' + NUMSTR(step) + ' of ' + nSteps$
     PRINT,'Starting position calculations.'
     t0                  = SYSTIME(1)
@@ -85,6 +89,7 @@ FOR step=scanStart,nScanSteps-1  DO BEGIN
 
     juls            =  (*rad_fit_data[inx]).juls[scanInx]
     scan_id         = ((*rad_fit_data[inx]).scan_id[scanInx])[0]
+    scan_ids[step]  = scan_id
 
     scan_startJul   = MIN(juls)
     SFJUL,scanDate,scanTime,scan_startJul,/JUL_TO_DATE
@@ -96,7 +101,9 @@ FOR step=scanStart,nScanSteps-1  DO BEGIN
     local_inx           = RAD_FIT_INX_SIMPLESCAN(scan_number,GLOBAL_INX=global_inx)
 
     beamVec             = (*rad_fit_data[inx]).beam[global_inx]
-    dataArr             = (*rad_fit_data[inx]).power[global_inx,*]
+;    dataArr             = (*rad_fit_data[inx]).power[global_inx,*]
+    cmd$ = 'dataArr = (*rad_fit_data[inx]).'+param+'[global_inx,*]'
+    s = EXECUTE(cmd$)
     dataArr             = EXPAND_GRID(dataArr,beamVec)
     badInx              = WHERE(dataArr EQ 10000, cnt)
     IF cnt NE 0 THEN dataArr[badInx] = !VALUES.F_NAN
@@ -226,6 +233,10 @@ FOR step=scanStart,nScanSteps-1  DO BEGIN
             modGate     = nAvailGates / nGate_min
         ENDELSE
 
+        IF KEYWORD_SET(use_all_cells) THEN BEGIN
+          modBeam = 1
+          modGate = 1
+        ENDIF
         ;Select only certain cells to reduce number of computations.
         beamInx     = WHERE(beamVec GE beamRange[0] AND beamVec LE beamRange[1])
         bInx        = INDGEN(N_ELEMENTS(beamInx))
@@ -304,6 +315,7 @@ FOR step=scanStart,nScanSteps-1  DO BEGIN
 
     FOR bk=0,nbeams-1 DO BEGIN
         goodInx         = WHERE(FINITE(dataZArr[bk,*]), cnt)
+;        goodInx         = WHERE(FINITE(dataZArr[bk,*]) AND ctrArr[3,bk,*] NE -1, cnt)
         IF cnt LE 2 THEN CONTINUE
 
         input_x         = [drange, REFORM(ctrArr[3,bk,goodInx])]
@@ -313,11 +325,33 @@ FOR step=scanStart,nScanSteps-1  DO BEGIN
         sort_inx        = SORT(input_x)
         input_x         = input_x[sort_inx]
         input_y         = input_y[sort_inx]
+        
+        out_inx = WHERE(output_x NE -1, cnt)
+        IF cnt EQ 0 THEN CONTINUE
+        result = FLTARR(N_ELEMENTS(output_x))
+        result[out_inx] = INTERPOL(input_y,input_x,output_x[out_inx])
 
-        result          = INTERPOL(input_y,input_x,output_x)
+        ;Force result to be positive if param is set to power.
+        IF param EQ 'power' THEN BEGIN
+          interpArr[bk,*] = result > 0
+        ENDIF
 
-        ;Force result to be positive.
-        interpArr[bk,*] = result > 0
+        ;If you aren't working in power, you can't just set things to 0.
+        valid_y = WHERE(input_y NE 0,cnt)
+        IF cnt EQ 0 THEN CONTINUE
+        valid_xranges = input_x(valid_y)
+        minx = MIN(valid_xranges)
+        IF minx LT drange[0] THEN minx = drange[0]
+        maxx = MAX(valid_xranges)
+        IF maxx GT drange[1] THEN maxx = drange[1]
+
+        bad = WHERE(output_x LT minx,cnt)
+        IF cnt NE 0 THEN result[bad] = 0
+
+        bad = WHERE(output_x GT maxx,cnt)
+        IF cnt NE 0 THEN result[bad] = 0
+
+        interpArr[bk,*] = result
     ENDFOR
 
     dataArr     = dataZarr
@@ -330,31 +364,27 @@ FOR step=scanStart,nScanSteps-1  DO BEGIN
     ; Plot stuff! ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
     ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
     IF KEYWORD_SET(gl) THEN BEGIN
-        
         IF ~KEYWORD_SET(loopComplete) AND gl GE 2 THEN BEGIN
+            PRINT,'This is here so the routine runs properly.'
             file    = DIR('output/kmaps/lrd.ps',/PS)
             @plot_lrd.pro
             PS_CLOSE
         ENDIF
-        
         IF gl GE 3 THEN BEGIN
             OPEN_LOOP_PLOT,'output/kmaps/','beam_interp',step
             @plot_beam_interp.pro
             PS_CLOSE
         ENDIF
-
         IF gl GE 3 THEN BEGIN
             OPEN_LOOP_PLOT,'output/kmaps/','gs_range',step
             @comp_gs_rang.pro
             PS_CLOSE
         ENDIF
-
         IF gl GE 3 THEN BEGIN
             OPEN_LOOP_PLOT,'output/kmaps/','raw_interp',step
             @comp_raw_interp.pro
             PS_CLOSE
         ENDIF
-
         IF gl GE 2 THEN BEGIN
             OPEN_LOOP_PLOT,'output/kmaps/','movie',step
             @plot_interp_movie_frame.pro
@@ -370,10 +400,16 @@ FOR step=scanStart,nScanSteps-1  DO BEGIN
     PRINT,''
     PRINT,''
 ENDFOR  ;Timestep Loop - step
+;sel_ctrArr_grid
+;sel_bndArr_grid
+;selRawData
+;interpData
+;scan_sJulVec
+
+PICKLE_MY_DATA,radar,scan_sJulVec,selRawData,sel_ctrArr_grid,sel_bndArr_grid,run_id,PATH='output/kmaps/pickle/',PREFIX='RAW_'
+PICKLE_MY_DATA,radar,scan_sJulVec,interpData,sel_ctrArr_grid,sel_bndArr_grid,run_id,PATH='output/kmaps/pickle/',PREFIX='INT_'
+
 SAVE
-
 ;PRINFO,'Press .c to run kspect2.pro.'
-;STOP
-
 KSPECT2
 END

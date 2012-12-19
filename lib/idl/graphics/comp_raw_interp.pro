@@ -22,7 +22,7 @@ MAP_PLOT_PANEL                                          $
     ,/NO_FILL                                           $
     ,POSITION           = posit
 
-clrArr          = REFORM(GET_COLOR_INDEX(dataArr,/NAN),[nBeams,nGates])
+clrArr          = REFORM(GET_COLOR_INDEX(dataArr,SCALE=scale,/NAN),[nBeams,nGates])
 FOR dd=0,N_ELEMENTS(clrArr)-1 DO BEGIN
     IF clrArr[dd] EQ GET_BACKGROUND() THEN CONTINUE
     bmGate      = ARRAY_INDICES(clrArr,dd)
@@ -71,7 +71,7 @@ MAP_PLOT_PANEL                                          $
     ,ROTATE             = rotate                        $
     ,POSITION           = posit
 
-clrArr          = REFORM(GET_COLOR_INDEX(interpArr,/NAN),[nBeams,nGates])
+clrArr          = REFORM(GET_COLOR_INDEX(interpArr,SCALE=scale,/NAN),[nBeams,nGates])
 FOR dd=0,N_ELEMENTS(clrArr)-1 DO BEGIN
     IF clrArr[dd] EQ GET_BACKGROUND() THEN CONTINUE
     bmGate      = ARRAY_INDICES(clrArr,dd)
@@ -106,7 +106,7 @@ RAD_FIT_PLOT_SCAN_TITLE,2,3,1,0                         $
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 posit           = DEFINE_PANEL(2,3,0,2,/BAR,/WITH_INFO)
-clrArr          = REFORM(GET_COLOR_INDEX(dataArr,/NAN),[nBeams,nGates])
+clrArr          = REFORM(GET_COLOR_INDEX(dataArr,SCALE=scale,/NAN),[nBeams,nGates])
 PLOT_GATE_BEAM,bndArr,clrArr                                                $
     ,YCOORDS        = 'rang'                                                $
     ,YRANGE         = dRange                                                $
@@ -115,7 +115,7 @@ PLOT_GATE_BEAM,bndArr,clrArr                                                $
     ,POSITION       = posit
 
 posit           = DEFINE_PANEL(2,3,1,2,/BAR,/WITH_INFO)
-clrArr          = REFORM(GET_COLOR_INDEX(interpData[step,*,*],/NAN),[nSelBeams,nSelGates])
+clrArr          = REFORM(GET_COLOR_INDEX(interpData[step,*,*],SCALE=scale,/NAN),[nSelBeams,nSelGates])
 PLOT_GATE_BEAM,sel_bndArr_grid,clrArr                                           $
     ,XVALS          = selBeamVec                                            $
     ,YVALS          = selGateVec                                                $
@@ -125,4 +125,4 @@ PLOT_GATE_BEAM,sel_bndArr_grid,clrArr                                           
     ,YCHARSIZE      = 0.6                                                   $
     ,POSITION       = posit
 
-PLOT_COLORBAR,2,1,1,0,CHARSIZE=0.60
+PLOT_COLORBAR,2,1,1,0,CHARSIZE=0.60,SCALE=scale

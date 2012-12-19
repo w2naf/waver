@@ -22,7 +22,7 @@ MAP_PLOT_PANEL                                          $
     ,/NO_FILL                                           $
     ,POSITION           = posit
 
-clrArr          = REFORM(GET_COLOR_INDEX(dataArr,/NAN),[nBeams,nGates])
+clrArr          = REFORM(GET_COLOR_INDEX(dataArr,/NAN,SCALE=scale),[nBeams,nGates])
 FOR dd=0,N_ELEMENTS(clrArr)-1 DO BEGIN
     IF clrArr[dd] EQ GET_BACKGROUND() THEN CONTINUE
     bmGate      = ARRAY_INDICES(clrArr,dd)
@@ -71,7 +71,7 @@ MAP_PLOT_PANEL                                          $
     ,/NO_FILL                                           $
     ,POSITION           = posit
 
-clrArr          = REFORM(GET_COLOR_INDEX(interpArr,/NAN),[nBeams,nGates])
+clrArr          = REFORM(GET_COLOR_INDEX(interpArr,SCALE=scale,/NAN),[nBeams,nGates])
 FOR dd=0,N_ELEMENTS(clrArr)-1 DO BEGIN
     IF clrArr[dd] EQ GET_BACKGROUND() THEN CONTINUE
     bmGate      = ARRAY_INDICES(clrArr,dd)
@@ -95,6 +95,7 @@ FOR dd=0,N_ELEMENTS(clrArr)-1 DO BEGIN
     yy          = [p0[1], p1[1], p2[1], p3[1]]
     POLYFILL,xx,yy,COLOR=clrArr[dd],NOCLIP=0
 ENDFOR
+PLOT_COLORBAR,CHARSIZE=0.60,SCALE=scale,PANEL_POSITION=posit
 
 OVERLAY_FOV_NAME                                    $
     ,JUL            = scan_startJul                 $
@@ -128,7 +129,6 @@ PLOT_GATE_BEAM,sel_bndArr_grd,clrArr                                        $
     ,CHARSIZE       = 0.5                                                   $
     ,POSITION       = posit
 
-
 posit           = DEFINE_PANEL(2,3,1,2,/BAR,/WITH_INFO)
 posit[1]        += yoff
 posit[3]        += yoff
@@ -150,7 +150,7 @@ PLOT_GATE_BEAM,sel_bndArr_grd,clrArr                                        $
     ,CHARSIZE       = 0.5                                                   $
     ,POSITION       = posit
 
-PLOT_COLORBAR,2,1,1,0,CHARSIZE=0.60,/SHIFT,LEGEND='Distance [km]',SCALE=colorscale
+PLOT_COLORBAR,2,1,1,0,CHARSIZE=0.60,/SHIFT,LEGEND='Distance [km]',SCALE=colorscale,PANEL_POSITION=posit
 
 
 legend  = ['X [km]: ' + NUMSTR(xspread,1)       $

@@ -1,5 +1,6 @@
 PRO PLOT_FULL_SPECTRUM
 RESTORE,'spect.sav'
+IF N_ELEMENTS(bandLim) NE 2 THEN bandLim = [0,0]
 sJul    = julVec[0]
 fJul    = julVec[nSteps-1]
 
@@ -39,7 +40,7 @@ dims            = SIZE(data,/DIM)
 image           = GET_COLOR_INDEX(data,PARAM='power',SCALE=specScale,/CONTINUOUS,/NAN)
 image           = REFORM(image,dims)
 
-IF N_ELEMENTS(bandLim) EQ 2 THEN BEGIN
+IF bandLim[0] NE bandLim[1] AND ~KEYWORD_SET(fir_filter) THEN BEGIN
   bl0_inx = WHERE(posPlotFreqVec GE bandLim[0],cnt)
   IF cnt GT 0 THEN BEGIN
     bl0_inx = bl0_inx[0]
@@ -54,7 +55,7 @@ IF N_ELEMENTS(bandLim) EQ 2 THEN BEGIN
 ENDIF ELSE BEGIN
   bl0_inx = 0
   bl0 = posPlotFreqVec[bl0_inx]
-  bl1_inx = bl1_inx[nPf-1]
+  bl1_inx = N_ELEMENTS(posPlotFreqVec)-1
   bl1 = posPlotFreqVec[bl1_inx]
 ENDELSE
 
@@ -66,10 +67,12 @@ avg_image       = GET_COLOR_INDEX(avg_psd,PARAM='power',SCALE=specScale,/CONTINU
 
 
 posit           = DEFINE_PANEL(1,1,0,0,/BAR)
-subtitle        = STRUPCASE(radar) + ' ' + JUL2STRING(sJul) + ' - ' + JUL2STRING(fJul)
 
-IF N_ELEMENTS(bandLim) EQ 2 THEN BEGIN
+subtitle        = STRUPCASE(radar) + ' ' + CAPITAL(param) + ' (' + JUL2STRING(sJul,/SHORT) + ' to ' + JUL2STRING(fJul,/SHORT)+')'
+
+IF bandLim[0] NE bandLim[1] THEN BEGIN
   bl$ = 'Band: ' + NUMSTR(bandLim[0]*1000.,2) + ' - ' + NUMSTR(bandLim[1]*1000.,2) + ' mHz'
+  IF KEYWORD_SET(fir_filter) THEN bl$ = 'Digital Filter '+bl$
   subtitle = subtitle + '!C' + bl$
 ENDIF
 
@@ -149,7 +152,7 @@ ENDFOR
 
 ;Plot bandlimit box.
 RAD_LOAD_COLORTABLE
-IF N_ELEMENTS(bandlim) EQ 2 THEN BEGIN
+IF bandLim[0] NE bandLim[1] AND ~KEYWORD_SET(fir_filter) THEN BEGIN
   blThick=8
   OPLOT,bl0_inx*nSelBeams*[1,1],[0,nSelGates],THICK=blThick,NOCLIP=1,COLOR=GET_RED()
   OPLOT,(bl1_inx+1)*nSelBeams*[1,1],[0,nSelGates],THICK=blThick,NOCLIP=1,COLOR=GET_RED()
@@ -211,6 +214,14 @@ XYOUTS,0.1,0.05,txt$,CHARSIZE=0.75,/NORMAL
 txt$            = 'Note: Every frequency bin contains ' + NUMSTR(nSelBeams) + ' beams.'
 XYOUTS,0.1,0.03,txt$,CHARSIZE=0.75,/NORMAL
 
+IF N_ELEMENTS(posPlotFreqVec) EQ 1 THEN BEGIN
+  PRINFO,'WARNING!!!!'
+  PRINT,'There is only 1 FFT bin.  Did you choose a time period with enough samples in it???'
+  PRINT,"I don't think you did.  You had better re-evaluate things."
+  PRINT,"I'm just going to stop right here until you work out your issues."
+  PRINT,''
+  STOP
+ENDIF
 df      = NUMSTR((posPlotFreqVec[1] - posPlotFreqVec[0])*1000.,2)
 txt$    = 'df = ' + df + ' mHz'
 XYOUTS,0.1,0.01,txt$,CHARSIZE=0.75,/NORMAL

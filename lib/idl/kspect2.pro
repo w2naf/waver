@@ -80,6 +80,8 @@ FOR bb=0,dims[1]-1 DO BEGIN
     ENDFOR
 ENDFOR
 
+scan_ids = PARAM_REGRID(scan_sJulVec,scan_ids,julVec)
+
 IF gl GE mpGL THEN BEGIN
     CLEAR_PAGE,/NEXT
     PLOT_TITLE,'Time Series of Selected Cells',STRUPCASE(radar) + ' ' + FORMAT_DATE(scanDate,/HUMAN)
@@ -111,6 +113,60 @@ IF gl GE mpGL THEN BEGIN
 ENDIF   ;mpGL
 
 interpData      = timeInterpArr
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;FIR Filtering
+IF KEYWORD_SET(fir_filter) THEN BEGIN
+  dims       = SIZE(interpData,/DIM)
+  filtArr    = interpData
+  IF gl GE mpGl THEN BEGIN
+    SET_FORMAT,/GUPPIES,/PORTRAIT
+    CLEAR_PAGE,/NEXT
+  ENDIF
+  FOR bb=0,dims[1]-1 DO BEGIN
+      FOR gg=0,dims[2]-1 DO BEGIN
+          IF bb EQ 0 AND gg EQ 0 THEN plot_info = 1 ELSE plot_info=0
+          filt = FIR_FILT(REFORM(julVec),REFORM(interpData[*,bb,gg]),FLOW=bandLim[0],FHIGH=bandLim[1],PLOT_INFO=plot_info,VALIDJULS=validJuls)
+          filtArr[*,bb,gg] = filt
+  ;       filtArr[*,bb,gg] = interpData[*,bb,gg]
+      ENDFOR
+  ENDFOR
+  interpData = filtArr
+
+  IF N_ELEMENTS(fir_date) EQ 2 AND N_ELEMENTS(fir_time) EQ 2 THEN BEGIN
+    SFJUL,fir_date,fir_time,vsjul,vfjul
+    validJuls[0] = vsjul
+    validJuls[1] = vfjul
+  ENDIF
+
+  good        = WHERE(julVec GE validJuls[0] AND julVec LE validJuls[1],nsteps)
+  julVec      = julVec[good]
+  interpData  = interpData[good,*,*]
+  filtArr     = interpData
+
+  IF gl GE mpGL THEN BEGIN
+      SET_FORMAT,/LANDSCAPE,/SARDINES
+      CLEAR_PAGE,/NEXT
+      PLOT_TITLE,'Filtered Time Series of Selected Cells',STRUPCASE(radar) + ' ' + FORMAT_DATE(scanDate,/HUMAN)
+      MULTIPLOT,julVec,interpData                                         $
+          ,PLOTGATE           = plotGate                                      $
+          ,PLOTBEAM           = plotBeam                                      $
+          ,BEAMARR            = selBeamArr                                    $
+          ,GATEARR            = selGateArr                                    $
+      ;    ,YRANGE             = yrange                                        $
+  ;        ,OPLOTARR           = linFitArr                                     $
+  ;        ,OPLOTLEGEND        = 'Linear Fit'                                  $
+          ,/YSTYLE                                                            $
+          ,XTITLE             = 'UT'                                          $
+          ,XTICKFORMAT        = 'LABEL_DATE'                                  $
+          ,/XSTYLE                                                            $
+          ,YTITLE             = 'Power [dB]'                                  $
+          ,XCHARSIZE          = 0.5                                           $
+          ,YCHARSIZE          = 0.5                                           $
+          ,GEOMETRY           = [3,3]
+  ENDIF   ;mpGL
+ENDIF ;fir_filter
+
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;Linear detrending
@@ -313,6 +369,28 @@ IF gl GE mpGL THEN BEGIN
     PS_CLOSE
 ENDIF   ; mpGL
 
+IF KEYWORD_SET(fir_filter) THEN BEGIN
+  fir_scale = [-10,10]
+  PICKLE_MY_DATA,radar,julVec,filtArr,sel_ctrArr_grid,sel_bndArr_grid,run_id,PATH='output/kmaps/pickle/',PREFIX='FIR_'
+  title = 'Raw and FIR Filtered ('+NUMSTR(bandLim[0]*1000.,1)+'-'+NUMSTR(bandLim[1]*1000.,1)+' mHz) Data Comparison'
+  COMP_RAW_FIR,julVec,filtArr,sel_bndArr_grid       $
+    ,FILENAME   = DIR('output/kmaps/raw_fir_compare_rti.ps')  $
+    ,TITLE      = title                             $
+    ,BEAMVEC    = selBeamVec                        $
+    ,GATEVEC    = selGateVec                        $
+    ,SCAN_IDS   = scan_ids
+;    ,/AUTOSCALE
+
+  IF N_ELEMENTS(fir_scale) NE 2 THEN fir_scale = [0,0]
+  title = 'FIR Filtered ('+NUMSTR(bandLim[0]*1000.,1)+'-'+NUMSTR(bandLim[1]*1000.,1)+' mHz) Data'
+  PLOT_MOVIE,julVec,filtArr,sel_bndArr_grid,'fir_filtered'       $
+    ,TITLE      = title                             $
+    ,BEAMVEC    = selBeamVec                        $
+    ,GATEVEC    = selGateVec                        $
+    ,SCAN_IDS   = scan_ids                          $
+    ,SCALE      = fir_scale
+ENDIF
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;Calculate Spectral Density Matrix
 ;See Samson et al. [1990] - Goose Bay Radar Observations of Earth Reflected Gravity Waves in the High-Latitude Ionosphere
@@ -328,7 +406,8 @@ IF gl GE 2 THEN BEGIN
     PLOT_FULL_SPECTRUM
 ENDIF
 
-IF KEYWORD_SET(bandLim) THEN BEGIN
+IF N_ELEMENTS(bandLim) NE 2 THEN bandLim = [0,0]
+IF bandLim[0] NE bandLim[1] AND ~KEYWORD_SET(fir_filter) THEN BEGIN
     ;blInx   = WHERE(ABS(freqVec) GE bandLim[0] AND ABS(freqVec) LE bandLim[1],cnt)
     blInx   = WHERE(posFreqVec GE bandLim[0] AND posFreqVec LE bandLim[1],cnt)
     IF cnt NE 0 THEN BEGIN
@@ -523,7 +602,7 @@ ENDIF
 
 
 PRINFO,'LA_ELMHES'
-H = LA_ELMHES(dlm,q,PERMUTE_RESULT = permute, SCALE_RESULT = scale,/double)
+H = LA_ELMHES(dlm,q,PERMUTE_RESULT = permute, SCALE_RESULT = scale_result,/double)
 PRINFO,'LA_HQR'
 evals = LA_HQR(h, q, PERMUTE_RESULT = permute,status=status,/double)
 IF COND(dlm) EQ -1 THEN BEGIN
@@ -535,7 +614,7 @@ ENDIF ELSE IF status NE 0 THEN BEGIN
 ENDIF
 
 PRINFO,'Calculating Eigenvectors with LA_EIGENVEC'
-evecs = LA_EIGENVEC(H,Q,EIGENINDEX=eigenindex,PERMUTE_RESULT=permute,SCALE_RESULT=scale,/double)
+evecs = LA_EIGENVEC(H,Q,EIGENINDEX=eigenindex,PERMUTE_RESULT=permute,SCALE_RESULT=scale_result,/double)
 
 ;SAVE,filename='eigen.sav'
 ;RESTORE,'eigen.sav'

@@ -3,8 +3,13 @@ COMMON MUSIC_PARAMS                     $
         ,radar                          $   
         ,date                           $   
         ,time                           $   
+        ,fir_filter                     $
+        ,fir_date                       $   
+        ,fir_time                       $   
+        ,fir_scale                      $
         ,timeStep                       $   
         ,param                          $   
+        ,scale                          $
         ,filter                         $   
         ,ajground                       $   
         ,scatterflag                    $   
@@ -14,6 +19,7 @@ COMMON MUSIC_PARAMS                     $
         ,keep_lr                        $   
         ,kx_min                         $   
         ,ky_min                         $   
+        ,use_all_cells                  $   ;Don't make things sparse for kx_min and ky_min
         ,coord                          $   
         ,mapXRange                      $   
         ,mapYRange                      $   

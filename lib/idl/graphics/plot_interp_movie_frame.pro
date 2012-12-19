@@ -32,7 +32,7 @@ dataGateVec     = INDGEN(dims[1]) + gateRange[0]
 FOR ll=0,dims[1]-1 DO dataBeamArr[*,ll] = dataBeamVec
 FOR ll=0,dims[0]-1 DO dataGateArr[ll,*] = dataGateVec
 
-clrArr          = REFORM(GET_COLOR_INDEX(data,/NAN),dims)
+clrArr          = REFORM(GET_COLOR_INDEX(data,/NAN,SCALE=scale),dims)
 
 FOR dd=0,N_ELEMENTS(clrArr)-1 DO BEGIN
     IF clrArr[dd] EQ GET_BACKGROUND() THEN CONTINUE
@@ -77,7 +77,7 @@ RAD_FIT_PLOT_SCAN_TITLE,1,ymaps,0,0                         $
     ,SCAN_ID            = scan_id                       $
     ,SCAN_STARTJUL      = scan_startJul                 $
     ,/BAR
-PLOT_COLORBAR,1,ymaps,0,0,CHARSIZE=0.75
+PLOT_COLORBAR,1,ymaps,0,0,CHARSIZE=0.75,SCALE=scale
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 posit[1] = 0.440
 posit[3] = 0.460
@@ -118,8 +118,9 @@ RAD_FIT_PLOT_RTI_PANEL                                                  $
     ,TIME               = time                                          $
     ,PARAM              = param                                         $
     ,XTITLE             = xtitle                                        $
+    ,SCALE              = scale                                         $
     ,CHARSIZE           = 0.75                                          $
     ,/LAST                                                              $
     ,POSITION           = posit
 
-PLOT_COLORBAR,CHARSIZE=0.75,PANEL_POSITION=posit
+PLOT_COLORBAR,CHARSIZE=0.75,PANEL_POSITION=posit,SCALE=scale
