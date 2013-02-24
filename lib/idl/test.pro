@@ -1,22 +1,16 @@
-PRO TEST,RELOAD=reload
-COMMON rad_data_blk
-IF KEYWORD_SET(reload) THEN BEGIN
-    @event
-    RAD_FIT_READ,date[0],radar
-    SAVE
-ENDIF ELSE RESTORE
+PRO TEST
+RESTORE,'pos_waver.sav',/VERBOSE
+RESTORE,'pos_rdb.sav',/VERBOSE
 
-result  = RAD_FIT_RBPOS_SCAN(scan_number)
-range1  = REFORM(result[3,0,0,*,*])
-range2  = REFORM(result[3,1,0,*,*])
-range3  = REFORM(result[3,0,1,*,*])
-range4  = REFORM(result[3,1,1,*,*])
+pos_rdb = transpose(REFORM(gs_fov_loc_center[0,0,*]))
+;pos_waver = transpose(REFORM(ctrFOV_Waver[3,0,*]))
 
-ctrResult  = RAD_FIT_RBPOS_SCAN(scan_number,/CENTER)
-ctrRange   = REFORM(ctrResult[3,*,*])
-;PRINT,ctrRange
+pos_rdb = TRANSPOSE(REFORM(gs_fov_loc_full[0,0,0,*]))
+pos_waver = TRANSPOSE(REFORM(bndArr_grid[3,0,0,0,*]))
 
-local_inx = RAD_FIT_INX_SIMPLESCAN(scan_number,GLOBAL_INX=global_inx)
+test = FLTARR(2,71)
+test[0,0:N_ELEMENTS(pos_rdb)-1] = pos_rdb
+test[1,0:N_ELEMENTS(pos_waver)-1] = pos_waver
 
 STOP
 END

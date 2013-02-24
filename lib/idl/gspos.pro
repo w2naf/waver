@@ -128,33 +128,36 @@ FOR step=scanStart,nScanSteps-1  DO BEGIN
     nBeams              = (SIZE(dataArr,/DIM))[0]
     nGates              = (SIZE(dataArr,/DIM))[1]
 
-    ;Calculate positions... this could probably be optimized better.
-    ctrArr              = RAD_FIT_RBPOS_SCAN(scan_number,/CENTER)
-    bndArr              = RAD_FIT_RBPOS_SCAN(scan_number)
-
-    ctrArr              = ctrArr[*,local_inx,*]
-    bndArr              = bndArr[*,*,*,local_inx,*] 
-
-    ctrArr              = EXPAND_GRID(ctrArr,beamVec)
-    bndArr              = EXPAND_GRID(bndArr,beamVec)
+;    ;Calculate positions... this could probably be optimized better.
+;    ctrArr              = RAD_FIT_RBPOS_SCAN(scan_number,HEIGHT=height,FIX_HEIGHT=fix_height,/CENTER)
+;    bndArr              = RAD_FIT_RBPOS_SCAN(scan_number,HEIGHT=height,FIX_HEIGHT=fix_height)
+;
+;    ctrArr              = ctrArr[*,local_inx,*]
+;    bndArr              = bndArr[*,*,*,local_inx,*] 
+;
+;    ctrArr              = EXPAND_GRID(ctrArr,beamVec)
+;    bndArr              = EXPAND_GRID(bndArr,beamVec)
 
     IF ~KEYWORD_SET(loopComplete) THEN BEGIN
         PRINFO,'NOTICE: Assuming same scan mode across time period of interest.'
-        ctrArr_no_gs        = RAD_FIT_RBPOS_SCAN(scan_number,/NO_GS,/CENTER)
-        bndArr_no_gs        = RAD_FIT_RBPOS_SCAN(scan_number,/NO_GS)
+        ctrArr_no_gs        = RAD_FIT_RBPOS_SCAN(scan_number,HEIGHT=height,FIX_HEIGHT=fix_height,/NO_GS,/CENTER)
+        bndArr_no_gs        = RAD_FIT_RBPOS_SCAN(scan_number,HEIGHT=height,FIX_HEIGHT=fix_height,/NO_GS)
 
         ctrArr_no_gs        = ctrArr_no_gs[*,local_inx,*]
         bndArr_no_gs        = bndArr_no_gs[*,*,*,local_inx,*] 
         ctrArr_no_gs        = EXPAND_GRID(ctrArr_no_gs,beamVec)
         bndArr_no_gs        = EXPAND_GRID(bndArr_no_gs,beamVec)
 
-        ctrArr_grid         = RAD_FIT_RBPOS_SCAN(scan_number,/ALWAYS_GS,/CENTER)
-        bndArr_grid         = RAD_FIT_RBPOS_SCAN(scan_number,/ALWAYS_GS)
+        ctrArr_grid         = RAD_FIT_RBPOS_SCAN(scan_number,HEIGHT=height,FIX_HEIGHT=fix_height,/ALWAYS_GS,/CENTER)
+        bndArr_grid         = RAD_FIT_RBPOS_SCAN(scan_number,HEIGHT=height,FIX_HEIGHT=fix_height,/ALWAYS_GS)
 
         ctrArr_grid         = ctrArr_grid[*,local_inx,*]
         bndArr_grid         = bndArr_grid[*,*,*,local_inx,*]
         ctrArr_grid         = EXPAND_GRID(ctrArr_grid,beamVec)
         bndArr_grid         = EXPAND_GRID(bndArr_grid,beamVec)
+
+        ctrArr              = ctrArr_grid
+        bndArr              = bndArr_grid
 
         IF KEYWORD_SET(dRange) AND ~KEYWORD_SET(gateRange) THEN BEGIN
             gateRange       = INTARR(2)
@@ -271,7 +274,7 @@ FOR step=scanStart,nScanSteps-1  DO BEGIN
         lrBnd           = LRD_BND(sel_bndArr_grid,CTRLAT=ctrLat,CTRLON=ctrLon)
 
         ;AACGM Computations
-        height  = 300
+        IF N_ELEMENTS(height) EQ 0 THEN height  = 300
         aacgm   = CNVCOORD(ctrLat,ctrLon,height)
         ctrJul  = (sjul + fjul) / 2.
         yrYrsec = JUL2YRYRSEC(ctrJul)
@@ -369,26 +372,31 @@ FOR step=scanStart,nScanSteps-1  DO BEGIN
             file    = DIR('output/kmaps/lrd.ps',/PS)
             @plot_lrd.pro
             PS_CLOSE
+            PS2PNG,file,ROTATE=270
         ENDIF
         IF gl GE 3 THEN BEGIN
-            OPEN_LOOP_PLOT,'output/kmaps/','beam_interp',step
+            OPEN_LOOP_PLOT,'output/kmaps/','beam_interp',step,FILENAME=fileName
             @plot_beam_interp.pro
             PS_CLOSE
+            IF ~KEYWORD_SET(loopComplete) THEN PS2PNG,fileName,ROTATE=270
         ENDIF
         IF gl GE 3 THEN BEGIN
-            OPEN_LOOP_PLOT,'output/kmaps/','gs_range',step
+            OPEN_LOOP_PLOT,'output/kmaps/','gs_range',step,FILENAME=fileName
             @comp_gs_rang.pro
             PS_CLOSE
+            IF ~KEYWORD_SET(loopComplete) THEN PS2PNG,fileName,ROTATE=270
         ENDIF
         IF gl GE 3 THEN BEGIN
-            OPEN_LOOP_PLOT,'output/kmaps/','raw_interp',step
+            OPEN_LOOP_PLOT,'output/kmaps/','raw_interp',step,FILENAME=fileName
             @comp_raw_interp.pro
             PS_CLOSE
+            IF ~KEYWORD_SET(loopComplete) THEN PS2PNG,fileName,ROTATE=270
         ENDIF
         IF gl GE 2 THEN BEGIN
-            OPEN_LOOP_PLOT,'output/kmaps/','movie',step
+            OPEN_LOOP_PLOT,'output/kmaps/','movie',step,FILENAME=fileName
             @plot_interp_movie_frame.pro
             PS_CLOSE
+            IF ~KEYWORD_SET(loopComplete) THEN PS2PNG,fileName
         ENDIF
     ENDIF       ;Graphics Level
 

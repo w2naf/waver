@@ -1,12 +1,13 @@
-FUNCTION RAD_FIT_RBPOS_SCAN, scan_number                                        $
-            ,DATE               = date                                          $
-            ,TIME               = time                                          $
-            ,JUL                = jul                                           $
-            ,HEIGHT             = height                                        $
-            ,CENTER             = center                                        $
-            ,NO_GS_ADJUSTMENT   = no_gs_adjustment                              $
-            ,ALWAYS_GS_ADJUSTMENT = always_gs_adjustment                        $
-            ,COORDS             = coords
+FUNCTION RAD_FIT_RBPOS_SCAN, scan_number                                    $
+            ,DATE                 = date                                    $
+            ,TIME                 = time                                    $
+            ,JUL                  = jul                                     $
+            ,HEIGHT               = height                                  $
+            ,FIX_HEIGHT           = fix_height                              $
+            ,CENTER               = center                                  $
+            ,NO_GS_ADJUSTMENT     = no_gs_adjustment                        $
+            ,ALWAYS_GS_ADJUSTMENT = always_gs_adjustment                    $
+            ,COORDS               = coords
 
 COMMON radarinfo, network
 COMMON rad_data_blk
@@ -81,9 +82,9 @@ FOR bm_i=0,nBeams-1 DO BEGIN
         r           = rg_i+1    ;What gate do we really start things at??
         IF KEYWORD_SET(center) THEN BEGIN
             IF gs THEN BEGIN
-                s=RadarPosGsD(1,bmnum,r-1,site,frang,rsep,rxrise,h,rho,lat,lon,d)
+                s=RadarPosGsD(1,bmnum,r-1,site,frang,rsep,rxrise,h,rho,lat,lon,d,FIX_HEIGHT=fix_height)
             ENDIF ELSE BEGIN
-                s=RadarPosD(1,bmnum,r-1,site,frang,rsep,rxrise,h,rho,lat,lon,d)
+                s=RadarPosD(1,bmnum,r-1,site,frang,rsep,rxrise,h,rho,lat,lon,d,FIX_HEIGHT=fix_height)
             ENDELSE
             IF KEYWORD_SET(mgflag) THEN s=AACGMConvert(lat,lon,h,lat,lon,rad)
             pos1[0,0,0]=lat
@@ -94,9 +95,9 @@ FOR bm_i=0,nBeams-1 DO BEGIN
             pos[*,bm_i,rg_i]    = pos1[*,0,0]
         ENDIF ELSE BEGIN
             IF gs THEN BEGIN
-                s=RadarPosGsD(0,bmnum,r-1,site,frang,rsep,rxrise,h,rho,lat,lon,d)
+                s=RadarPosGsD(0,bmnum,r-1,site,frang,rsep,rxrise,h,rho,lat,lon,d,FIX_HEIGHT=fix_height)
             ENDIF ELSE BEGIN
-                s=RadarPosD(0,bmnum,r-1,site,frang,rsep,rxrise,h,rho,lat,lon,d)
+                s=RadarPosD(0,bmnum,r-1,site,frang,rsep,rxrise,h,rho,lat,lon,d,FIX_HEIGHT=fix_height)
             ENDELSE
             IF KEYWORD_SET(mgflag) THEN s=AACGMConvert(lat,lon,h,lat,lon,rad)
             pos1[0,0,0]=lat
@@ -105,9 +106,9 @@ FOR bm_i=0,nBeams-1 DO BEGIN
             pos1[3,0,0]=d
 
             IF gs THEN BEGIN
-                s=RadarPosGsD(0,bmnum+1,r-1,site,frang,rsep,rxrise,h,rho,lat,lon,d)
+                s=RadarPosGsD(0,bmnum+1,r-1,site,frang,rsep,rxrise,h,rho,lat,lon,d,FIX_HEIGHT=fix_height)
             ENDIF ELSE BEGIN
-                s=RadarPosD(0,bmnum+1,r-1,site,frang,rsep,rxrise,h,rho,lat,lon,d)
+                s=RadarPosD(0,bmnum+1,r-1,site,frang,rsep,rxrise,h,rho,lat,lon,d,FIX_HEIGHT=fix_height)
             ENDELSE
             IF KEYWORD_SET(mgflag) THEN s=AACGMConvert(lat,lon,h,lat,lon,rad)
             pos1[0,1,0]=lat
@@ -116,9 +117,9 @@ FOR bm_i=0,nBeams-1 DO BEGIN
             pos1[3,1,0]=d
 
             IF gs THEN BEGIN
-                s=RadarPosGsD(0,bmnum,r,site,frang,rsep,rxrise,h,rho,lat,lon,d)
+                s=RadarPosGsD(0,bmnum,r,site,frang,rsep,rxrise,h,rho,lat,lon,d,FIX_HEIGHT=fix_height)
             ENDIF ELSE BEGIN
-                s=RadarPosD(0,bmnum,r,site,frang,rsep,rxrise,h,rho,lat,lon,d)
+                s=RadarPosD(0,bmnum,r,site,frang,rsep,rxrise,h,rho,lat,lon,d,FIX_HEIGHT=fix_height)
             ENDELSE
             IF KEYWORD_SET(mgflag) THEN s=AACGMConvert(lat,lon,h,lat,lon,rad)
             pos1[0,0,1]=lat
@@ -127,9 +128,9 @@ FOR bm_i=0,nBeams-1 DO BEGIN
             pos1[3,0,1]=d
 
             IF gs THEN BEGIN
-                s=RadarPosGsD(0,bmnum+1,r,site,frang,rsep,rxrise,h,rho,lat,lon,d)
+                s=RadarPosGsD(0,bmnum+1,r,site,frang,rsep,rxrise,h,rho,lat,lon,d,FIX_HEIGHT=fix_height)
             ENDIF ELSE BEGIN
-                s=RadarPosD(0,bmnum+1,r,site,frang,rsep,rxrise,h,rho,lat,lon,d)
+                s=RadarPosD(0,bmnum+1,r,site,frang,rsep,rxrise,h,rho,lat,lon,d,FIX_HEIGHT=fix_height)
             ENDELSE
             IF KEYWORD_SET(mgflag) THEN s=AACGMConvert(lat,lon,h,lat,lon,rad)
             pos1[0,1,1]=lat

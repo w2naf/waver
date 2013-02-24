@@ -123,14 +123,26 @@ FOR ee=0,n_events-1 DO BEGIN
 
     GSPOS
 ;    KSPECT2
-    dirName = NUMSTR(date[0])                               $
-            + '.' + STRING(time[0],FORMAT='(I04)')          $
-            + '-' + STRING(time[1],FORMAT='(I04)')          $
-            + 'UT'                                          $
-            + '.' + STRING(bandLim[0]*10000,FORMAT='(I04)') $
-            + '-' + STRING(bandLim[1]*10000,FORMAT='(I04)') $
-            + 'mHz'                                         $
-            + '.' + radar
+    IF KEYWORD_SET(fir_filter) and N_ELEMENTS(fir_date) EQ 2 THEN BEGIN
+      dirName = NUMSTR(fir_date[0])                               $
+              + '.' + STRING(fir_time[0],FORMAT='(I04)')          $
+              + '-' + STRING(fir_time[1],FORMAT='(I04)')          $
+              + 'UT'                                              $
+              + '.FIR_' + STRING(bandLim[0]*10000,FORMAT='(I04)') $
+              + '-' + STRING(bandLim[1]*10000,FORMAT='(I04)')     $
+              + 'mHz'                                             $
+              + '.' + radar
+    ENDIF ELSE BEGIN
+      dirName = NUMSTR(date[0])                               $
+              + '.' + STRING(time[0],FORMAT='(I04)')          $
+              + '-' + STRING(time[1],FORMAT='(I04)')          $
+              + 'UT'                                          $
+              + '.' + STRING(bandLim[0]*10000,FORMAT='(I04)') $
+              + '-' + STRING(bandLim[1]*10000,FORMAT='(I04)') $
+              + 'mHz'                                         $
+              + '.' + radar
+    ENDELSE
+
     SPAWN,'mv output/kmaps/kspect/fullspect.png output/kmaps/'
     SPAWN,'mv output/kmaps/kspect/karr.png output/kmaps/'
     SPAWN,'mv output/kmaps/kspect/karr.txt output/kmaps/'

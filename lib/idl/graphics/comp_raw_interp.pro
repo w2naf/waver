@@ -119,8 +119,8 @@ clrArr          = REFORM(GET_COLOR_INDEX(interpData[step,*,*],SCALE=scale,/NAN),
 PLOT_GATE_BEAM,sel_bndArr_grid,clrArr                                           $
     ,XVALS          = selBeamVec                                            $
     ,YVALS          = selGateVec                                                $
-    ,YRANGE         = dRange                                                $
-    ,YCOORDS        = 'rang'                                                $
+    ,yrange         = drange                                                $
+    ,ycoords        = 'rang'                                                $
     ,XCHARSIZE      = 0.6                                                   $
     ,YCHARSIZE      = 0.6                                                   $
     ,POSITION       = posit

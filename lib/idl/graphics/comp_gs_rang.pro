@@ -58,8 +58,8 @@ FOR dd=0,N_ELEMENTS(clrArr)-1 DO BEGIN
     bm          = bmGate[0]
     rg          = bmGate[1]
 
-    lat     = REFORM(bndArr[0,*,*,bm,rg])
-    lon     = REFORM(bndArr[1,*,*,bm,rg])
+    lat     = REFORM(bndArr_grid[0,*,*,bm,rg])
+    lon     = REFORM(bndArr_grid[1,*,*,bm,rg])
 
     p0      = CALC_STEREO_COORDS(lat[0,0],lon[0,0],ROTATE=rotate)
     p1      = CALC_STEREO_COORDS(lat[0,1],lon[0,1],ROTATE=rotate)
@@ -140,7 +140,7 @@ PLOT_GATE_BEAM,bndArr_no_gs,clrArr                                          $
 
 posit           = DEFINE_PANEL(2,3,1,2,/BAR,/WITH_INFO)
 clrArr          = REFORM(GET_COLOR_INDEX(dataArr,/NAN,SCALE=scale),[nBeams,nGates])
-PLOT_GATE_BEAM,bndArr,clrArr                                                $
+PLOT_GATE_BEAM,bndArr_grid,clrArr                                                $
     ,TITLE          = 'Range Adjusted, DRANGE Applied'                      $
     ,YTITLE         = 'GS Adjusted Range'                                   $
     ,YVALS          = beamVec                                               $

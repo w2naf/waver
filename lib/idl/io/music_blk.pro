@@ -7,6 +7,7 @@ COMMON MUSIC_PARAMS                     $
         ,fir_date                       $   
         ,fir_time                       $   
         ,fir_scale                      $
+        ,zero_padding                   $
         ,timeStep                       $   
         ,param                          $   
         ,scale                          $
@@ -47,6 +48,8 @@ COMMON MUSIC_PARAMS                     $
         ,ctrJul                         $
         ,nmax                           $
         ,gl                             $   
+        ,height                         $
+        ,fix_height                     $
         ,test
 
 COMMON LOAD_MUSIC_EVENTS_BLK            $

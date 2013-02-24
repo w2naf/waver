@@ -139,10 +139,19 @@ IF KEYWORD_SET(fir_filter) THEN BEGIN
     validJuls[1] = vfjul
   ENDIF
 
-  good        = WHERE(julVec GE validJuls[0] AND julVec LE validJuls[1],nsteps)
-  julVec      = julVec[good]
-  interpData  = interpData[good,*,*]
-  filtArr     = interpData
+  good        = WHERE(julVec GE validJuls[0] AND julVec LE validJuls[1],filtNSteps,COMPLEMENT=bad)
+
+  IF ~KEYWORD_SET(zero_padding) THEN BEGIN
+    julVec      = julVec[good]
+    interpData  = interpData[good,*,*]
+    filtJulVec  = julVec
+    filtArr     = interpData
+    nsteps = filtNsteps
+  ENDIF ELSE BEGIN
+    interpData[bad,*,*] = 0
+    filtJulVec  = julVec[good]
+    filtArr     = interpData[good,*,*]
+  ENDELSE
 
   IF gl GE mpGL THEN BEGIN
       SET_FORMAT,/LANDSCAPE,/SARDINES
@@ -166,7 +175,6 @@ IF KEYWORD_SET(fir_filter) THEN BEGIN
           ,GEOMETRY           = [3,3]
   ENDIF   ;mpGL
 ENDIF ;fir_filter
-
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;Linear detrending
@@ -209,7 +217,7 @@ meanArr = FLTARR(dims[1],dims[2])
 meanArr$= STRING(meanArr)
 FOR bb=0,dims[1]-1 DO BEGIN
     FOR gg=0,dims[2]-1 DO BEGIN
-        meanArr[bb,gg]  = MEAN(interpData[*,bb,gg])
+        meanArr[bb,gg]  = MEAN(interpData[*,bb,gg],/NAN)
         meanArr$[bb,gg] = 'Mean: ' + NUMSTR(meanArr[bb,gg],1)
     ENDFOR
 ENDFOR
@@ -292,8 +300,6 @@ FOR bb=0,dims[1]-1 DO BEGIN
     ENDFOR
 ENDFOR
 
-
-
 ; Full FFT Plots ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 IF gl GE mpGL THEN BEGIN
     xAxis           = freqVec * 1000.
@@ -369,11 +375,12 @@ IF gl GE mpGL THEN BEGIN
     PS_CLOSE
 ENDIF   ; mpGL
 
+
 IF KEYWORD_SET(fir_filter) THEN BEGIN
-  fir_scale = [-10,10]
-  PICKLE_MY_DATA,radar,julVec,filtArr,sel_ctrArr_grid,sel_bndArr_grid,run_id,PATH='output/kmaps/pickle/',PREFIX='FIR_'
+;  fir_scale = [-10,10]
+  PICKLE_MY_DATA,radar,filtJulVec,filtArr,sel_ctrArr_grid,sel_bndArr_grid,run_id,PATH='output/kmaps/pickle/',PREFIX='FIR_'
   title = 'Raw and FIR Filtered ('+NUMSTR(bandLim[0]*1000.,1)+'-'+NUMSTR(bandLim[1]*1000.,1)+' mHz) Data Comparison'
-  COMP_RAW_FIR,julVec,filtArr,sel_bndArr_grid       $
+  COMP_RAW_FIR,filtJulVec,filtArr,sel_bndArr_grid       $
     ,FILENAME   = DIR('output/kmaps/raw_fir_compare_rti.ps')  $
     ,TITLE      = title                             $
     ,BEAMVEC    = selBeamVec                        $
@@ -383,7 +390,7 @@ IF KEYWORD_SET(fir_filter) THEN BEGIN
 
   IF N_ELEMENTS(fir_scale) NE 2 THEN fir_scale = [0,0]
   title = 'FIR Filtered ('+NUMSTR(bandLim[0]*1000.,1)+'-'+NUMSTR(bandLim[1]*1000.,1)+' mHz) Data'
-  PLOT_MOVIE,julVec,filtArr,sel_bndArr_grid,'fir_filtered'       $
+  PLOT_MOVIE,filtJulVec,filtArr,sel_bndArr_grid,'fir_filtered'       $
     ,TITLE      = title                             $
     ,BEAMVEC    = selBeamVec                        $
     ,GATEVEC    = selGateVec                        $
@@ -426,7 +433,7 @@ ENDELSE
 ;Find the dominant frequency within the passband.
 nPf     = N_ELEMENTS(spectOfInt[*,0,0])
 avg_psd = FLTARR(nPf)
-FOR ff=0,nPf-1 DO avg_psd[ff]=MEAN(ABS(spectOfInt[ff,*,*]))
+FOR ff=0,nPf-1 DO avg_psd[ff]=MEAN(ABS(spectOfInt[ff,*,*]),/NAN)
 fMaxVal = MAX(avg_psd,fMaxInx)
 fMax    = freqVecOfInt[fMaxInx]
 
@@ -448,8 +455,8 @@ IF gl GE 3 THEN BEGIN
     file    = DIR('output/kmaps/kspect/dlm_abs.ps',/PS)
     CLEAR_PAGE,/NEXT
     data   = ABS(dlm)
-    sd      = STDDEV(data)
-    mean    = MEAN(data)
+    sd      = STDDEV(data,/NAN)
+    mean    = MEAN(data,/NAN)
     scMax   = mean + 2.*sd
     dlmScale= scMax*[0,1.]
     image   = GET_COLOR_INDEX(data,PARAM='power',SCALE=dlmScale,/NAN)
@@ -482,7 +489,7 @@ IF gl GE 3 THEN BEGIN
 
     max$ = NUMSTR(MAX(data,/NAN),5)
     min$ = NUMSTR(MIN(data,/NAN),5)
-    mean$ =NUMSTR(MEAN(data),5)
+    mean$ =NUMSTR(MEAN(data,/NAN),5)
     sd$  = NUMSTR(sd,5)
     var$ = NUMSTR(sd^2,5)
     txt$ = 'Max: ' + max$ + ' Min: ' + min$ + ' Mean: ' + mean$ + TEXTOIDL(' \sigma: ') + sd$ $
@@ -499,8 +506,8 @@ IF gl GE 3 THEN BEGIN
     file    = DIR('output/kmaps/kspect/dlm_re.ps',/PS)
     CLEAR_PAGE,/NEXT
     data    = REAL_PART(dlm)
-    sd      = STDDEV(data)
-    mean    = MEAN(data)
+    sd      = STDDEV(data,/NAN)
+    mean    = MEAN(data,/NAN)
     scMax   = mean + 2.*sd
     scMin   = mean - 2.*sd
     IF ABS(scMin) GT ABS(scMax) THEN scMax = ABS(scMin)
@@ -536,7 +543,7 @@ IF gl GE 3 THEN BEGIN
 
     max$ = NUMSTR(MAX(data,/NAN),5)
     min$ = NUMSTR(MIN(data,/NAN),5)
-    mean$ =NUMSTR(MEAN(data),5)
+    mean$ =NUMSTR(MEAN(data,/NAN),5)
     sd$  = NUMSTR(sd,5)
     var$ = NUMSTR(sd^2,5)
     txt$ = 'Max: ' + max$ + ' Min: ' + min$ + ' Mean: ' + mean$ + TEXTOIDL(' \sigma: ') + sd$ $
@@ -553,8 +560,8 @@ IF gl GE 3 THEN BEGIN
     CLEAR_PAGE,/NEXT
 
     data   = IMAGINARY(dlm)
-    sd      = STDDEV(data)
-    mean    = MEAN(data)
+    sd      = STDDEV(data,/NAN)
+    mean    = MEAN(data,/NAN)
     scMax   = mean + 2.*sd
     scMin   = mean - 2.*sd
     IF ABS(scMin) GT ABS(scMax) THEN scMax = ABS(scMin)
@@ -589,7 +596,7 @@ IF gl GE 3 THEN BEGIN
 
     max$ = NUMSTR(MAX(data,/NAN),5)
     min$ = NUMSTR(MIN(data,/NAN),5)
-    mean$ =NUMSTR(MEAN(data),5)
+    mean$ =NUMSTR(MEAN(data,/NAN),5)
     sd$  = NUMSTR(sd,5)
     var$ = NUMSTR(sd^2,5)
     txt$ = 'Max: ' + max$ + ' Min: ' + min$ + ' Mean: ' + mean$ + TEXTOIDL(' \sigma: ') + sd$ $
@@ -602,6 +609,7 @@ ENDIF
 
 
 PRINFO,'LA_ELMHES'
+;The LA_ELMHES function reduces a real nonsymmetric or complex non-Hermitian array to upper Hessenberg form H. If the array is real then the decomposition is A = Q H QT, where Q is orthogonal. If the array is complex Hermitian then the decomposition is A = Q H QH, where Q is unitary. The superscript T represents the transpose while superscript H represents the Hermitian, or transpose complex conjugate.
 H = LA_ELMHES(dlm,q,PERMUTE_RESULT = permute, SCALE_RESULT = scale_result,/double)
 PRINFO,'LA_HQR'
 evals = LA_HQR(h, q, PERMUTE_RESULT = permute,status=status,/double)

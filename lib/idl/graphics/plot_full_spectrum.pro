@@ -31,8 +31,8 @@ npf     = ULONG(N_ELEMENTS(posPlotFreqVec))
 nXBins  = nSelBeams * nPf
 
 data            = ABS(posPlotSpectArr)
-sd              = STDDEV(data)
-mean            = MEAN(data)
+sd              = STDDEV(data,/NAN)
+mean            = MEAN(data,/NAN)
 scMax           = mean + 2.*sd
 specScale       = scMax*[0,1.]
 dims            = SIZE(data,/DIM)
@@ -61,14 +61,22 @@ ENDELSE
 
 ;Average PSD
 avg_psd         = FLTARR(nPf)
-FOR ff=bl0_inx,bl1_inx DO avg_psd[ff] = MEAN(data[ff,*,*])
+FOR ff=bl0_inx,bl1_inx DO avg_psd[ff] = MEAN(data[ff,*,*],/NAN)
 avg_psd         = avg_psd/MAX(avg_psd) * scMax
 avg_image       = GET_COLOR_INDEX(avg_psd,PARAM='power',SCALE=specScale,/CONTINUOUS,/NAN)
 
 
 posit           = DEFINE_PANEL(1,1,0,0,/BAR)
 
-subtitle        = STRUPCASE(radar) + ' ' + CAPITAL(param) + ' (' + JUL2STRING(sJul,/SHORT) + ' to ' + JUL2STRING(fJul,/SHORT)+')'
+IF KEYWORD_SET(fir_filter) THEN BEGIN
+  tsJul = vsJul
+  tfJul = vfJul
+ENDIF ELSE BEGIN
+  tsJul = sJul
+  tfJul = fJul
+ENDELSE
+
+subtitle        = STRUPCASE(radar) + ' ' + CAPITAL(param) + ' (' + JUL2STRING(tsJul,/SHORT) + ' to ' + JUL2STRING(tfJul,/SHORT)+')'
 
 IF bandLim[0] NE bandLim[1] THEN BEGIN
   bl$ = 'Band: ' + NUMSTR(bandLim[0]*1000.,2) + ' - ' + NUMSTR(bandLim[1]*1000.,2) + ' mHz'
@@ -142,12 +150,17 @@ FOR ff=0,npf-1 DO BEGIN
     XYOUTS,xpos,-0.035*nSelGates,ff$,/NOCLIP,CHARSIZE=fCharSize
     XYOUTS,xpos,-0.065*nSelGates,t$,/NOCLIP,CHARSIZE=fCharSize
 ENDFOR
-    XYOUTS,nXBins,-0.035*nSelGates,'freq [mHz]',/NOCLIP,CHARSIZE=fCharSize
-    XYOUTS,nXBins,-0.065*nSelGates,'Per. [min]',/NOCLIP,CHARSIZE=fCharSize
+    XYOUTS,1.02*(!X.CRANGE[1]-!X.CRANGE[0]),-0.035*nSelGates,'freq [mHz]',/NOCLIP,CHARSIZE=fCharSize
+    XYOUTS,1.02*(!X.CRANGE[1]-!X.CRANGE[0]),-0.065*nSelGates,'Per. [min]',/NOCLIP,CHARSIZE=fCharSize
 
 ;Plot separator bars.
 FOR ff=0,npf-1 DO BEGIN
-    OPLOT,ff*nSelBeams*[1,1],[-0.5,nSelGates+1],THICK=4,NOCLIP=1;,COLOR=GET_WHITE()
+    OPLOT,ff*nSelBeams*[1,1],[-0.25,nSelGates+1],THICK=4,NOCLIP=1;,COLOR=GET_WHITE()
+ENDFOR
+
+FOR ff=0,npf-1 DO BEGIN
+    IF (ff MOD modX) NE 0 THEN CONTINUE
+    OPLOT,ff*nSelBeams*[1,1],[-1.25,nSelGates+1],THICK=4,NOCLIP=1;,COLOR=GET_WHITE()
 ENDFOR
 
 ;Plot bandlimit box.
@@ -170,7 +183,7 @@ FOR gg=0,nSelGates-1 DO BEGIN
     XYOUTS,-0.035*nXBins,gg+0.5,rg$,/NOCLIP,CHARSIZE=0.85
 ENDFOR
     rg$ = 'Norm!CAvg!CPSD'
-    XYOUTS,-0.030*nXBins,gg+0.6,rg$,/NOCLIP,CHARSIZE=0.60,ALIGN=0.5
+    XYOUTS,-0.030*nXBins,gg+0.75,rg$,/NOCLIP,CHARSIZE=0.50,ALIGN=0.5
 
 PLOT,xvals,yvals,/NODATA                                $
     ,CHARSIZE           = 0.85                          $
@@ -203,7 +216,7 @@ PLOT_COLORBAR,1,1,0,0                                   $
 
 max$            = NUMSTR(MAX(data,/NAN),5)
 min$            = NUMSTR(MIN(data,/NAN),5)
-mean$           = NUMSTR(MEAN(data),5)
+mean$           = NUMSTR(MEAN(data,/NAN),5)
 sd$             = NUMSTR(sd,5)
 var$            = NUMSTR(sd^2,5)
 txt$            = 'Max: ' + max$ + ' Min: ' + min$ + ' Mean: ' + mean$ + TEXTOIDL(' \sigma: ') + sd$ $
