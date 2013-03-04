@@ -1,6 +1,8 @@
 import numpy as np
+a = np.arange(6).reshape(2,3)
+b = np.arange(6).reshape(2,3) * 10.
+it = np.nditer([a,b])
 
-a = np.ones([10,8,7])
-
-print a
-print np.shape(a)
+while not it.finished:
+  print it[0], it[1]
+  it.iternext()

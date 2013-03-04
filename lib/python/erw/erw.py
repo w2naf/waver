@@ -152,6 +152,144 @@ class ns_functions(object):
             )
       return C0
 
+    def A_x(self,kappa,root,alpha,beta,eta,nu,sigma,b1,b3,gamma,omega,k_x):
+      """
+      [Francis, 1973] (Equation A19)
+      """
+      A_x = (b3*(omega/k_x)*(
+              (1.+eta)*kappa - 1j*alpha*(1.+3.*eta) + kappa/(1./(gamma-1) - nu*root)
+              )
+            - b1*(omega/k_x)*(
+              (1.+4.*eta)*root - eta - beta - 1. + (root-1.)/(1./(gamma-1.) - nu*root)
+              + 1j*sigma*beta*(1.-b3**2)
+              )
+            )
+      return A_x
+
+
+    def A_z(self,kappa,root,alpha,beta,eta,nu,sigma,b1,b3,gamma,omega,k_x):
+      """
+      [Francis, 1973] (Equation A20)
+      """
+      A_z = (b1*(omega/k_x)*(
+              (1.+eta)*kappa + 2j*eta*alpha + (kappa-1j*alpha)/(1./(gamma-1.)-nu*root)
+              )
+            - b3*(omega/k_x)*(
+              1. + eta - beta + 3.*eta*root + 1/(1./(gamma-1.)-nu*root) + 1j*sigma*beta*(1.-b1**2)
+              )
+            )
+      return A_z
+
+    def A_T(self,A_x,A_z,T_0,kappa,root,nu,gamma,omega,k_x):
+      """
+      [Francis, 1973] (Equation A21)
+      """
+      A_T = T_0*k_x/omega * ((A_x + kappa*A_z)/((1./(gamma-1.))-nu*root))
+      return A_T
+
+    def A_p(self,A_x,A_z,A_T,T_0,p_0,kappa,root,alpha,nu,gamma,omega,k_x):
+      """
+      [Francis, 1973] (Equation A22)
+      """
+      A_p = p_0*k_x/omega * (A_x+A_z*(kappa-1j*alpha)) + p_0 * (A_T/T_0)
+      return A_p
+
+    def A_chi(self,A_p,A_z,p_0,omega,H,mu,k_x,k_z):
+      """
+      Continuty of pressure tensor.
+      [Francis, 1973] (Equation A16)
+      """
+      chi = A_p - (p_0*A_z)/(1j*omega*H) + (4./3.)*mu*1j*k_z*A_z - (2./3.)*mu*1j*k_x*A_z
+      return chi
+
+    def xi(self,x,z,t,omega,k_x,H):
+      """
+      Part of complex exponential not involving k_z.
+      [Francis, 1973] (Equation A18)
+      """
+      xi = np.exp(1j*omega*t - 1j*k_x*x + z/(2.*H))
+      return xi
+
+    def ez(self,k_z,z):
+      """
+      Complex exponential including k_z.
+      [Francis, 1973] (Equation A18)
+      """
+      ez = np.exp(-1j*k_z*z)
+      return ez
+
+    def a11_dn(self,A_z_dn,A_chi_dn,A_z_up,A_chi_up,e_dzm_dn,e_dzm_up):
+      """
+      Element for transition matrix.
+      Similar to Friedman [1966], Equation 26, but solved 
+      for the Francis [1973] setup.
+      """
+      a11_dn = ((A_chi_up*A_z_dn)/(A_z_dn*A_chi_up-A_z_up*A_chi_dn)) * e_dzm_dn
+      return a11_dn
+
+    def a11_up(self,A_z_dn,A_chi_dn,A_z_up,A_chi_up,e_dzm_dn,e_dzm_up):
+      """
+      Element for transition matrix.
+      Similar to Friedman [1966], Equation 26, but solved 
+      for the Francis [1973] setup.
+      """
+      a11_up = ((A_chi_dn*A_z_up)/(A_chi_dn*A_z_up+A_chi_up*A_z_dn)) * e_dzm_up
+      return a11_up
+
+    def a12_dn(self,A_z_dn,A_chi_dn,A_z_up,A_chi_up,e_dzm_dn,e_dzm_up):
+      """
+      Element for transition matrix.
+      Similar to Friedman [1966], Equation 26, but solved 
+      for the Francis [1973] setup.
+      """
+      a12_dn = (( A_z_up*A_z_dn)/(A_z_up*A_chi_dn-A_z_dn*A_chi_up)) * e_dzm_dn
+      return a12_dn
+
+    def a12_up(self,A_z_dn,A_chi_dn,A_z_up,A_chi_up,e_dzm_dn,e_dzm_up):
+      """
+      Element for transition matrix.
+      Similar to Friedman [1966], Equation 26, but solved 
+      for the Francis [1973] setup.
+      """
+      a12_up = ((-A_z_dn*A_z_up)/(A_z_dn*A_chi_up+A_z_up*A_chi_dn)) * e_dzm_up
+      return a12_up
+
+    def a21_dn(self,A_z_dn,A_chi_dn,A_z_up,A_chi_up,e_dzm_dn,e_dzm_up):
+      """
+      Element for transition matrix.
+      Similar to Friedman [1966], Equation 26, but solved 
+      for the Francis [1973] setup.
+      """
+      a21_dn = ((A_chi_up*A_chi_dn)/(A_z_dn*A_chi_up-A_z_up*A_chi_dn)) * e_dzm_dn
+      return a21_dn
+
+    def a21_up(self,A_z_dn,A_chi_dn,A_z_up,A_chi_up,e_dzm_dn,e_dzm_up):
+      """
+      Element for transition matrix.
+      Similar to Friedman [1966], Equation 26, but solved 
+      for the Francis [1973] setup.
+      """
+      a21_up = ((A_chi_dn*A_chi_up)/(A_chi_dn*A_z_up+A_chi_up*A_z_dn)) * e_dzm_up 
+      return a21_up
+
+    def a22_dn(self,A_z_dn,A_chi_dn,A_z_up,A_chi_up,e_dzm_dn,e_dzm_up):
+      """
+      Element for transition matrix.
+      Similar to Friedman [1966], Equation 26, but solved 
+      for the Francis [1973] setup.
+      """
+      a22_dn = (( A_z_up*A_chi_dn)/(A_z_up*A_chi_dn-A_z_dn*A_chi_up)) * e_dzm_dn
+      return a22_dn
+
+    def a22_up(self,A_z_dn,A_chi_dn,A_z_up,A_chi_up,e_dzm_dn,e_dzm_up):
+      """
+      Element for transition matrix.
+      Similar to Friedman [1966], Equation 26, but solved 
+      for the Francis [1973] setup.
+      """
+      a22_up = ((-A_z_dn*A_chi_up)/(A_chi_dn*A_z_up+A_chi_up*A_z_dn)) * e_dzm_up 
+      return a22_up
+
 class erw_functions(object):
   def c(self,gamma,R_gas,temp,M):
     """Speed of sound c [m/s]:
@@ -413,10 +551,154 @@ class atmos(object):
         self.Hdens[ia]  = d[6]
         self.Hedens[ia] = d[0]
         self.Ardens[ia] = d[4]
+
+    avogNr = 6.02e23
     self.numDens= self.N2dens + self.O2dens + self.Odens + self.Ndens + self.Ardens + self.Hdens + self.Hedens
-    self.molDens  = self.numDens / 6.02E23
+    self.molDens  = self.numDens / avogNr
     self.pressure = self.molDens * R_gas * self.temp
     self.molMass  = self.dens / self.molDens
+
+    self.N2molDens = self.N2dens / avogNr
+    self.O2molDens = self.O2dens / avogNr
+    self.NmolDens  = self.Ndens  / avogNr
+    self.OmolDens  = self.Odens  / avogNr
+    self.HmolDens  = self.Hdens  / avogNr
+    self.HemolDens = self.Hedens / avogNr
+    self.ArmolDens = self.Ardens / avogNr
+
+    amu = 1.660538921e-27 #kg
+    self.N2massDens = self.N2dens * 2. * 14.01 * amu
+    self.O2massDens = self.O2dens * 2. * 16.00 * amu
+    self.NmassDens  = self.Ndens  * 1. * 14.01 * amu
+    self.OmassDens  = self.Odens  * 1. * 16.00 * amu
+    self.HmassDens  = self.Hdens  * 1. * 1.008 * amu
+    self.HemassDens = self.Hedens * 1. * 4.003 * amu
+    self.ArmassDens = self.Ardens * 1. * 39.95 * amu
+
+    #Use the Sutherland formula to compute viscosity.
+    #Sutherland formula constants.  See the following pages for references:
+    #http://mac6.ma.psu.edu/stirling/simulations/DHT/ViscosityTemperatureSutherland.html [He]
+    #Tuples have the form (mu_0,T_0,C_suth), where:
+    #  mu_0:   Reference viscosity [kg/(m*sec)] at temperature T_0
+    #  T_0:    Reference temperature [K]
+    #  C_suth: Sutherland temperature [K]
+    suth = {}
+    suth['He'] = (18.85e-6, 273.00,  79.4)
+    suth['N2'] = (17.81e-6, 300.55, 111.0)
+    suth['O2'] = (20.18e-6, 292.25, 127.0)
+    suth['Ar'] = (21.25e-6, 273.00, 144.0)
+
+    #Specific Heat, constant pressure [J/(mol*K)]
+    C_p = {}
+    C_p['He'] = 20.7862
+    C_p['N2'] = 29.12
+    C_p['O2'] = 29.38
+    C_p['Ar'] = 20.7862
+
+    # Viscosity [kg/(m*sec)]
+    mu_He = self.sutherland(self.temp,suth['He'])
+    mu_N2 = self.sutherland(self.temp,suth['N2'])
+    mu_O2 = self.sutherland(self.temp,suth['O2'])
+    mu_Ar = self.sutherland(self.temp,suth['Ar'])
+
+    # Viscosity Weighted average
+    num = mu_He*self.Hedens + mu_N2*self.N2dens + mu_O2*self.O2dens + mu_Ar*self.Ardens
+    den = self.Hedens + self.N2dens + self.O2dens + self.Ardens
+    self.mu = num/den
+
+    # Kinematic Viscosity nu [m**2/sec]
+    nu_He = mu_He / self.HemassDens
+    nu_N2 = mu_N2 / self.N2massDens
+    nu_O2 = mu_O2 / self.O2massDens
+    nu_Ar = mu_Ar / self.ArmassDens
+    
+    # Kinematic Viscosity Weighted Average
+    num = nu_He*self.Hedens + nu_N2*self.N2dens + nu_O2*self.O2dens + nu_Ar*self.Ardens
+    den = self.Hedens + self.N2dens + self.O2dens + self.Ardens
+    self.nu = num/den
+
+    #Thermal Diffusivity kappa [m**2/sec]
+    #Assume a constant Prandtl Number Pr = 0.7 [Vadas and Fritts, 2004; Kundu, 1990]
+    Pr = 0.7
+    kappa_He = nu_He / Pr
+    kappa_N2 = nu_N2 / Pr
+    kappa_O2 = nu_O2 / Pr
+    kappa_Ar = nu_Ar / Pr
+    
+    # Thermal Diffusivity Weighted Average
+    num = kappa_He*self.Hedens + kappa_N2*self.N2dens + kappa_O2*self.O2dens + kappa_Ar*self.Ardens
+    den = self.Hedens + self.N2dens + self.O2dens + self.Ardens
+    self.kappa = num/den
+
+    #Thermal Conductivity lambda [(kg m)/(s**3 K)]
+    lambda_He = kappa_He * self.HemolDens * C_p['He']
+    lambda_N2 = kappa_N2 * self.N2molDens * C_p['N2'] 
+    lambda_O2 = kappa_O2 * self.O2molDens * C_p['O2']
+    lambda_Ar = kappa_Ar * self.ArmolDens * C_p['Ar']
+
+    # Thermal Diffusivity Weighted Average
+    num = lambda_He*self.Hedens + lambda_N2*self.N2dens + lambda_O2*self.O2dens + lambda_Ar*self.Ardens
+    den = self.Hedens + self.N2dens + self.O2dens + self.Ardens
+    self.lambda_th = num/den
+
+  def sutherland(self,temp,constants):
+    mu_0 = constants[0]
+    T_0  = constants[1]
+    S    = constants[2]
+
+    mu = mu_0 * (temp/T_0)**(3/2.) * (T_0 + S)/(temp + S)
+    return mu
+
+  def plotViscosity(self):
+    mp.figure(figsize=(16,8))
+    #rcParams.update({'font.size': 12})
+
+    rows  = 1
+    cols  = 4
+    np    = 0
+
+    np = np+1
+    mp.subplot(rows,cols,np)
+    mp.plot(self.mu,self.altitude)
+    mp.gca().set_xscale('log')
+#    mp.gca().set_yticklabels([])
+    mp.xlabel(r'Average Viscosity $\overline{\mu}$ [kg/(m sec)]')
+    mp.ylabel(r'Altitude [km]')
+    mp.grid()
+
+    np = np+1
+    mp.subplot(rows,cols,np)
+    mp.plot(10000*self.nu,self.altitude)
+    mp.gca().set_xscale('log')
+#    mp.gca().set_yticklabels([])
+    mp.xlabel(r'Average Kinematic Viscosity $\nu$ [cm$^2$/sec]')
+    mp.ylabel(r'Altitude [km]')
+    mp.grid()
+
+    np = np+1
+    mp.subplot(rows,cols,np)
+    mp.plot(10000*self.kappa,self.altitude)
+    mp.gca().set_xscale('log')
+#    mp.gca().set_yticklabels([])
+    mp.xlabel(r'Average Thermal Diffusivity $\kappa$ [cm$^2$/sec]')
+    mp.ylabel(r'Altitude [km]')
+    mp.title(r'Assuming Prandtl Pr = 0.7')
+    mp.grid()
+
+    np = np+1
+    mp.subplot(rows,cols,np)
+    mp.plot(self.lambda_th,self.altitude)
+    mp.gca().set_xscale('log')
+#    mp.gca().set_yticklabels([])
+#    mp.xlabel(r'Average Thermal Conductivity $\lambda$ \left[\frac{\mbox{kg m}}{\mbox{K s}^3}\right]$')
+    mp.xlabel(r'Average Thermal Conductivity $\lambda$ [(kg m)/(K s^3)]')
+    mp.ylabel(r'Altitude [km]')
+    mp.grid()
+
+    title = r'Currently only using O$_2$, N$_2$, He, and Ar'
+    mp.suptitle(title)
+    mp.tight_layout()
+    mp.subplots_adjust(top=0.90)
   def plot(self):
 #    mp.figure(figsize=(16,16))
     mp.figure(figsize=(12,12))
@@ -517,8 +799,8 @@ class igrf(object):
     self.x   = np.zeros(np.shape(z_s),dtype=np.float)
     self.y   = np.zeros(np.shape(z_s),dtype=np.float)
     self.z   = np.zeros(np.shape(z_s),dtype=np.float)
-#    self.B   = np.zeros(np.shape(z_s),dtype=np.float)
-    self.B   = np.zeros((np.size(z_s),4),dtype=np.float)
+    self.B   = np.zeros(np.shape(z_s),dtype=np.float)
+#    self.B   = np.zeros((np.size(z_s),4),dtype=np.float)
     self.zz  = np.zeros(np.shape(z_s),dtype=np.float)
 
     inx = 0
@@ -533,15 +815,12 @@ class igrf(object):
       self.x[inx] = x[0]
       self.y[inx] = y[0]
       self.z[inx] = z[0]
-#      self.B[inx] = B[0]
-      self.B[inx,:] = B
+      self.B[inx] = B[0]
       self.zz[inx] = zz
       inx = inx + 1
-    import ipdb; ipdb.set_trace()
-    self.B_z_s = self.z[0]
 
 class multilayer(object):
-  def __init__(self,omega,k_x,mu,lambda_th,T_0,p_0,sigma_p,b1,b3,B,rho_0,H,g):
+  def __init__(self,omega,k_x,mu,lambda_th,T_0,p_0,sigma_p,b1,b3,B,rho_0,H,g,x,z,t):
     """
     omega:      Angular wave frequency [rad/s]
     k_x:        Horizontal wave number [rad/m]
@@ -557,6 +836,8 @@ class multilayer(object):
     H:          Scale height [m]
     g:          Gravitational acceleration [m/(s**2)]
     """
+    z     = np.array(z)
+
     ns    = ns_functions()
     alpha = ns.alpha(k_x,H)
     beta  = ns.beta(omega,g,k_x,H)
@@ -569,30 +850,317 @@ class multilayer(object):
     C1    = ns.C1(alpha,beta,eta,nu,sigma,b1,b3,gamma)
     C0    = ns.C0(alpha,beta,eta,sigma,b1,b3,gamma)
 
-    roots = np.roots([C3,C2,C1,C0])
 
-    D2    = 1
-    D1    = -1j*alpha
-    D0    = 1-roots[0]
+    C0_inx    = 0
+    C1_inx    = 1
+    C2_inx    = 2
+    C3_inx    = 3
+    alpha_inx = 4
+    k_x_inx   = 5
+    H_inx     = 6
+    k_z_dn_inx    = 7
+    k_z_up_inx    = 8
+    kappa_dn_inx  = 9
+    kappa_up_inx  = 10
+    nGrowth_inx   = 11
 
-    kappa = np.roots([D2,D1,D0])
+    it = np.nditer([C0,C1,C2,C3,alpha,k_x,H,None,None,None,None,None])
+    nn = -1
+    size = np.size(C3)
+    while not it.finished:
+      nn = nn+1
+      coefs = [it[C3_inx],it[C2_inx],it[C1_inx],it[C0_inx]]
+      
+      if not np.all(np.isfinite(coefs)):
+#        print 'NaN',nn,'/',size
+        it[k_z_dn_inx] = np.nan
+        it[k_z_up_inx] = np.nan
+        it[kappa_dn_inx] = np.nan
+        it[kappa_up_inx] = np.nan
+        it.iternext()
+        continue
 
-    k_z   = k_x*kappa - 1j/(2*H)
+      roots = np.roots(coefs)
 
-    self.ns     = ns     
-    self.alpha  = alpha  
-    self.beta   = beta   
-    self.eta    = eta    
-    self.nu     = nu     
-    self.sigma  = sigma  
-                        
-    self.C3     = C3     
-    self.C2     = C2     
-    self.C1     = C1     
-    self.C0     = C0     
-    self.roots  = roots
-    self.kappa  = kappa
-    self.k_z    = k_z
+      D2    = 1
+      D1    = -1j*it[alpha_inx]
+
+      kappa_list  = []
+      k_z_list    = []
+      for root in roots:
+        D0        = 1-root
+        kappa_tmp = np.roots([D2,D1,D0])
+        kappa_list.append(kappa_tmp)
+        kz_tmp    = it[k_x_inx]*kappa_tmp - 1j/(2*it[H_inx])
+        k_z_list.append(kz_tmp)
+
+      #Pick out which k_z to use...
+      #The dissapative waves (heat conduction and viscosity) are going to
+      #be strongly damped (Large imaginary part that has the opposite sign
+      #of the real part.)
+      #The acoustic-gravity wave is going to grow (same sign real and imaginary part).
+      #According to Francis [1973] pp 2296-2297, the dissapative waves
+      #can be disregarded.
+
+      #To try and automatically pick out the correct k_z.  For now, I'm just 
+      #going to say that the k_z pair in which both k_z's show growth is the
+      #correct one.  If there are none or more than one, drop to the debugger.
+      #This will probably need to be adjusted later.
+
+      growth = np.zeros(3)
+      kk = 0
+      for k_z in k_z_list:
+        sign        = np.sign(np.real(k_z) * np.imag(k_z))
+        growth[kk]  = sign[0] and sign[1]
+        kk = kk + 1
+
+      inx = np.where(growth == 1)
+      nGrow   = np.size(inx)
+      it[nGrowth_inx] = nGrow
+      if nGrow != 1:
+#        print 'I\'m not sure which k_z value to use for the GW... Help!!'
+#        print k_z_list
+        it[k_z_dn_inx]    = 0
+        it[k_z_up_inx]    = 0
+        it[kappa_dn_inx]  = 0
+        it[kappa_up_inx]  = 0
+      else:
+        root    = roots[inx[0][0]]
+        k_z     = np.sort(k_z_list[inx[0][0]])
+        it[k_z_dn_inx] = k_z[0] #k_z_dn
+        it[k_z_up_inx] = k_z[1] #k_z_up
+        it[kappa_dn_inx] = (k_z[0] + 1j/(2.*it[H_inx]))/it[k_x_inx] #kappa_dn
+        it[kappa_up_inx] = (k_z[1] + 1j/(2.*it[H_inx]))/it[k_x_inx] #kappa_up
+      
+#      print k_z,nn,'/',size
+      it.iternext()
+
+    k_z_dn    = it.operands[k_z_dn_inx]
+    k_z_up    = it.operands[k_z_up_inx]
+    kappa_dn  = it.operands[kappa_dn_inx]
+    kappa_up  = it.operands[kappa_up_inx]
+    nGrowth   = (it.operands[nGrowth_inx]).astype(np.int)
+
+    #Compute the polarization constants...
+    A_x_dn    = ns.A_x(kappa_dn,root,alpha,beta,eta,nu,sigma,b1,b3,gamma,omega,k_x)
+    A_z_dn    = ns.A_z(kappa_dn,root,alpha,beta,eta,nu,sigma,b1,b3,gamma,omega,k_x)
+    A_T_dn    = ns.A_T(A_x_dn,A_z_dn,T_0,kappa_dn,root,nu,gamma,omega,k_x)
+    A_p_dn    = ns.A_p(A_x_dn,A_z_dn,A_T_dn,T_0,p_0,kappa_dn,root,alpha,nu,gamma,omega,k_x)
+    A_chi_dn  = ns.A_chi(A_p_dn,A_z_dn,p_0,omega,H,mu,k_x,k_z_dn)
+
+    A_x_up    = ns.A_x(kappa_up,root,alpha,beta,eta,nu,sigma,b1,b3,gamma,omega,k_x)
+    A_z_up    = ns.A_z(kappa_up,root,alpha,beta,eta,nu,sigma,b1,b3,gamma,omega,k_x)
+    A_T_up    = ns.A_T(A_x_up,A_z_up,T_0,kappa_up,root,nu,gamma,omega,k_x)
+    A_p_up    = ns.A_p(A_x_up,A_z_up,A_T_up,T_0,p_0,kappa_up,root,alpha,nu,gamma,omega,k_x)
+    A_chi_up  = ns.A_chi(A_p_up,A_z_up,p_0,omega,H,mu,k_x,k_z_up)
+
+    dzm         = z - np.roll(z,1,1)
+    dzm[:,0,:]  = np.nan
+
+    e_dzm_dn = ns.ez(k_z_dn,dzm)
+    e_dzm_up = ns.ez(k_z_up,dzm)
+
+    #Transition matrix coefficients...
+    a11_dn = ns.a11_dn(A_z_dn,A_chi_dn,A_z_up,A_chi_up,e_dzm_dn,e_dzm_up)
+    a12_dn = ns.a12_dn(A_z_dn,A_chi_dn,A_z_up,A_chi_up,e_dzm_dn,e_dzm_up)
+    a21_dn = ns.a21_dn(A_z_dn,A_chi_dn,A_z_up,A_chi_up,e_dzm_dn,e_dzm_up)
+    a22_dn = ns.a22_dn(A_z_dn,A_chi_dn,A_z_up,A_chi_up,e_dzm_dn,e_dzm_up)
+
+    a11_up = ns.a11_up(A_z_dn,A_chi_dn,A_z_up,A_chi_up,e_dzm_dn,e_dzm_up)
+    a12_up = ns.a12_up(A_z_dn,A_chi_dn,A_z_up,A_chi_up,e_dzm_dn,e_dzm_up)
+    a21_up = ns.a21_up(A_z_dn,A_chi_dn,A_z_up,A_chi_up,e_dzm_dn,e_dzm_up)
+    a22_up = ns.a22_up(A_z_dn,A_chi_dn,A_z_up,A_chi_up,e_dzm_dn,e_dzm_up)
+    import ipdb; ipdb.set_trace()
+
+    shape     = np.shape(z)
+    nx,nz,nt  = shape
+    uz_pr_up  = np.zeros(shape,dtype=np.complex)
+    uz_pr_dn  = np.zeros(shape,dtype=np.complex)
+    chi_pr_up = np.zeros(shape,dtype=np.complex)
+    chi_pr_dn = np.zeros(shape,dtype=np.complex)
+
+    for xx in range(nx):
+      for tt in range(nt):
+        chi_pr_dn[xx,0,tt] = a22_dn[xx,0,tt]*chi_pr_dn[xx,m-1,t]
+        chi_pr_up[xx,m,tt] = a21_up[xx,m,tt]*uz_pr_up[xx,m-1,tt] + a22_up[xx,m,tt]*chi_pr_up[xx,m-1,t]
+      tt = tt+1
+    xx = xx+1
+
+    for xx in range(nx):
+      for tt in range(nt):
+        for m in range(nz-1)+1:
+          uz_pr_dn[xx,m,tt] = a11_dn[xx,m,tt]*uz_pr_dn[xx,m-1,tt] + a12_dn[xx,m,tt]*chi_pr_dn[xx,m-1,t]
+          uz_pr_up[xx,m,tt] = a11_up[xx,m,tt]*uz_pr_up[xx,m-1,tt] + a12_up[xx,m,tt]*chi_pr_up[xx,m-1,t]
+          
+          chi_pr_dn[xx,m,tt] = a21_dn[xx,m,tt]*uz_pr_dn[xx,m-1,tt] + a22_dn[xx,m,tt]*chi_pr_dn[xx,m-1,t]
+          chi_pr_up[xx,m,tt] = a21_up[xx,m,tt]*uz_pr_up[xx,m-1,tt] + a22_up[xx,m,tt]*chi_pr_up[xx,m-1,t]
+        tt = tt+1
+      xx = xx+1
+
+
+    #Basic Sinusoids...
+    e_dn    = np.exp(1j*omega*tGrid - 1j*k_x*xGrid - 1j*k_z_dn*zGrid + zGrid/(2.*H))
+    e_up    = np.exp(1j*omega*tGrid - 1j*k_x*xGrid - 1j*k_z_up*zGrid + zGrid/(2.*H))
+
+    #Arbitary coefficients
+    CF_dn   = 1.
+    CF_up   = 1.
+
+    p_pr_dn   = CF_dn * A_p_dn * e_dn
+    T_pr_dn   = CF_dn * A_T_dn * e_dn
+    ux_pr_dn  = CF_dn * A_x_dn * e_dn
+    uz_pr_dn  = CF_dn * A_z_dn * e_dn
+
+    p_pr_up   = CF_up * A_p_up * e_up
+    T_pr_up   = CF_up * A_T_up * e_up
+    ux_pr_up  = CF_up * A_x_up * e_up
+    uz_pr_up  = CF_up * A_z_up * e_up
+
+    p_pr_dn   = np.real(p_pr_dn)
+    T_pr_dn   = np.real(T_pr_dn)
+    ux_pr_dn  = np.real(ux_pr_dn)
+    uz_pr_dn  = np.real(uz_pr_dn)
+
+    p_pr_up   = np.real(p_pr_up)
+    T_pr_up   = np.real(T_pr_up)
+    ux_pr_up  = np.real(ux_pr_up)
+    uz_pr_up  = np.real(uz_pr_up)
+
+    self.x        = x
+    self.z_z      = z_z
+    self.t        = t
+    self.k_z_up   = k_z_up
+    self.k_z_dn   = k_z_dn
+
+    self.p_pr_dn  = p_pr_dn 
+    self.T_pr_dn  = T_pr_dn 
+    self.ux_pr_dn = ux_pr_dn
+    self.uz_pr_dn = uz_pr_dn
+
+    self.p_pr_up  = p_pr_up 
+    self.T_pr_up  = T_pr_up 
+    self.ux_pr_up = ux_pr_up
+    self.uz_pr_up = uz_pr_up
+
+  def plotLayer(self,x_plot,t_plot,timeUnits='minutes',xaxis='range',lengthUnits='kilometers'):
+    if timeUnits == 'minutes':
+      t_plot = t_plot*60.
+    elif timeUnits == 'hours':
+      t_plot = t_plot*3600.
+
+    if lengthUnits == 'kilometers':
+      x_plot = x_plot * 1000.
+
+    mp.figure(figsize=(20,11.5))
+    #rcParams.update({'font.size': 12})
+    x_inx = get_index(x_plot,self.x)
+    t_inx = get_index(t_plot,self.t)
+    self.x_inx = x_inx
+    self.t_inx = t_inx
+
+    z = self.z_z/1000.
+    ylim = [np.min(z),np.max(z)]
+    xLabel  = 'Altitude [km]'
+
+    
+    lm_up = (2.*np.pi)/np.real(self.k_z_up) / 1000.
+    lm_dn = (2.*np.pi)/np.real(self.k_z_dn) / 1000.
+
+    upperTitle = r'Upgoing Wave $\lambda_z=$'   + "{0:.0f}".format(lm_up) + ' km'
+    lowerTitle = r'Downgoing Wave $\lambda_z=$' + "{0:.0f}".format(lm_dn) + ' km'
+
+    nRows = 2
+    nCols = 4
+    pl    = 0
+
+    pl = pl + 1
+    mp.subplot(nRows,nCols,pl)
+    mp.plot(self.p_pr_up[x_inx,:,t_inx],z)
+#    mp.gca().set_xscale('log')
+    mp.ylabel(xLabel)
+    mp.xlabel(r"Pressure $p' [Pa]$")
+    mp.title(upperTitle)
+    mp.ylim(ylim)
+    xfm = mp.gca().xaxis.get_major_formatter()
+    xfm.set_powerlimits([ -3, 3])
+
+    pl = pl + 1
+    mp.subplot(nRows,nCols,pl)
+    mp.plot(self.T_pr_up[x_inx,:,t_inx],z)
+#    mp.gca().set_xscale('log')
+    mp.ylabel(xLabel)
+    mp.xlabel(r"Temperature $T'$ [K]")
+    mp.title(upperTitle)
+    mp.ylim(ylim)
+    xfm = mp.gca().xaxis.get_major_formatter()
+    xfm.set_powerlimits([ -3, 3])
+
+    pl = pl + 1
+    mp.subplot(nRows,nCols,pl)
+    mp.plot(self.ux_pr_up[x_inx,:,t_inx],z)
+#    mp.gca().set_xscale('log')
+    mp.ylabel(xLabel)
+    mp.xlabel(r"Horiz. Vel. $u_x'$ [m/s]")
+    mp.title(upperTitle)
+    mp.ylim(ylim)
+    xfm = mp.gca().xaxis.get_major_formatter()
+    xfm.set_powerlimits([ -3, 3])
+
+    pl = pl + 1
+    mp.subplot(nRows,nCols,pl)
+    mp.plot(self.uz_pr_up[x_inx,:,t_inx],z)
+#    mp.gca().set_xscale('log')
+    mp.ylabel(xLabel)
+    mp.xlabel(r"Vert. Vel. $u_x'$ [m/s]")
+    mp.title(upperTitle)
+    mp.ylim(ylim)
+    xfm = mp.gca().xaxis.get_major_formatter()
+    xfm.set_powerlimits([ -3, 3])
+
+    pl = pl + 1
+    mp.subplot(nRows,nCols,pl)
+    mp.plot(self.p_pr_dn[x_inx,:,t_inx],z)
+#    mp.gca().set_xscale('log')
+    mp.ylabel(xLabel)
+    mp.xlabel(r"Pressure $p' [Pa]$")
+    mp.title(lowerTitle)
+    mp.ylim(ylim)
+    xfm = mp.gca().xaxis.get_major_formatter()
+    xfm.set_powerlimits([ -3, 3])
+
+    pl = pl + 1
+    mp.subplot(nRows,nCols,pl)
+    mp.plot(self.T_pr_dn[x_inx,:,t_inx],z)
+#    mp.gca().set_xscale('log')
+    mp.ylabel(xLabel)
+    mp.xlabel(r"Temperature $T'$ [K]")
+    mp.title(lowerTitle)
+    mp.ylim(ylim)
+    xfm = mp.gca().xaxis.get_major_formatter()
+    xfm.set_powerlimits([ -3, 3])
+
+    pl = pl + 1
+    mp.subplot(nRows,nCols,pl)
+    mp.plot(self.ux_pr_dn[x_inx,:,t_inx],z)
+#    mp.gca().set_xscale('log')
+    mp.ylabel(xLabel)
+    mp.xlabel(r"Horiz. Vel. $u_x'$ [m/s]")
+    mp.title(lowerTitle)
+    mp.ylim(ylim)
+    xfm = mp.gca().xaxis.get_major_formatter()
+    xfm.set_powerlimits([ -3, 3])
+
+    pl = pl + 1
+    mp.subplot(nRows,nCols,pl)
+    mp.plot(self.uz_pr_dn[x_inx,:,t_inx],z)
+#    mp.gca().set_xscale('log')
+    mp.ylabel(xLabel)
+    mp.xlabel(r"Vert. Vel. $u_x'$ [m/s]")
+    mp.title(lowerTitle)
+    mp.ylim(ylim)
+    mp.tight_layout()
+    xfm = mp.gca().xaxis.get_major_formatter()
+    xfm.set_powerlimits([ -3, 3])
 
 def vline(xpos,string,color):
   ax = mp.gca()
@@ -663,16 +1231,18 @@ class gw(object):
 
   def p_prime(self,x,z,t,z_0,c1,c2,z_s,I,dz,glat,glon,date,waveType='reflected'):
     #Everything should be in meters by the time it gets to here.
-    shape = np.shape(x)
+    shape     = np.shape(x)
+    nx,nz,nt  = np.shape(x)
+    zShape    = [1,nz,1]
+
 
     #Get magnetic field model data.
     #Altitude needs to go in as [km].
     #Make sure we get the value in T, not nT.
-#    self.igrf = igrf(z_s/1000.,glat,glon,date)
-#    B_z_s     = (self.igrf.B_z_s) * 1e-9
+    self.igrf_src = igrf(z_s/1000.,glat,glon,date)
+    B_z_s     = (self.igrf_src.z) * 1e-9
 
-    self.igrf2 = igrf(self.z/1000.,glat,glon,date)
-    import ipdb; ipdb.set_trace()
+    self.igrf = igrf(self.z/1000.,glat,glon,date)
 
     #Calculate pressure at the source altitude only.
     #Altitude needs to go in as [km].
@@ -683,15 +1253,15 @@ class gw(object):
     #Calculate the atmosphere for the entire grid.
     #Altitude needs to go in as [km].
     self.atm  = atmos(z[0,:,0]/1000.,glat,glon,date)
-    p0_z      = self.grid * np.reshape(self.atm.pressure, [1,shape[1],1])
-    temp_0    = self.grid * np.reshape(self.atm.temp    , [1,shape[1],1])
-    rho_0     = self.grid * np.reshape(self.atm.dens    , [1,shape[1],1])
+    p0_z      = self.grid * np.reshape(self.atm.pressure, zShape)
+    temp_0    = self.grid * np.reshape(self.atm.temp    , zShape)
+    rho_0     = self.grid * np.reshape(self.atm.dens    , zShape)
 
     fn = erw_functions()
     self.fn = fn
     
     self.c = fn.c(gamma,R_gas,self.atm.temp,self.atm.molMass)
-    c        = self.grid * np.reshape(self.c           , [1,shape[1],1])
+    c        = self.grid * np.reshape(self.c           , zShape)
 
     H         = fn.H(gamma,g,c)
     H1        = fn.H(gamma,g,c1)
@@ -729,12 +1299,24 @@ class gw(object):
 
 #    T = self.grid
 
-    mu        = 0
-    lambda_th = 0
+#    poi = self.set_default_indices(50,200,1)
+#    lambda_th = self.atm.lambda_th[poi[1]]
+#    mu        = self.atm.mu[poi[1]]
+#    sigma_p   = 0
+#    b1        = (np.cos(self.igrf.inc * (np.pi/180.)))[poi[1]]
+#    b3        = (np.sin(self.igrf.inc * (np.pi/180.)))[poi[1]]
+#    B         = (self.igrf.B[poi[1]]) * 10**-9
+
+    lambda_th = self.grid * np.reshape(self.atm.lambda_th, zShape)
+    mu        = self.grid * np.reshape(self.atm.mu       , zShape)
     sigma_p   = 0
-    b1        = 0
-    b3        = 0
-    B         = B_z_s
+    B         = self.igrf.B * 10**-9
+    b1        = (np.cos(self.igrf.inc * (np.pi/180.)))
+    b3        = (np.sin(self.igrf.inc * (np.pi/180.)))
+    B         = self.grid * np.reshape(B ,zShape)
+    b1        = self.grid * np.reshape(b1,zShape)
+    b3        = self.grid * np.reshape(b3,zShape)
+
     helpvar('omega_bar',omega_bar)
     helpvar('k_x_bar',k_x_bar)
     helpvar('mu',mu)
@@ -749,25 +1331,56 @@ class gw(object):
     helpvar('H',H)
     helpvar('g',g)
 
-    poi = self.set_default_indices(800,200,45)
-
-    ml = multilayer(
-        omega_bar[poi],
-        k_x_bar[poi],
-        mu,
-        lambda_th,
-        temp_0[poi],
-        p0_z[poi],
-        sigma_p,
-        b1,
-        b3,
-        B,
-        rho_0[poi],
-        H[poi],
-        g)
+    poi = self.set_default_indices(600,200,4,timeUnits='hours')
+    omega_bar_ml  = np.reshape(omega_bar[poi[0],:,poi[2]],zShape)
+    k_x_bar_ml    = np.reshape(k_x_bar[poi[0],:,poi[2]],zShape)
+    mu_ml         = np.reshape(mu[poi[0],:,poi[2]],zShape)
+    lambda_th_ml  = np.reshape(lambda_th[poi[0],:,poi[2]],zShape)
+    temp_0_ml     = np.reshape(temp_0[poi[0],:,poi[2]],zShape)
+    p0_z_ml       = np.reshape(p0_z[poi[0],:,poi[2]],zShape)
+    sigma_p_ml    = sigma_p
+    b1_ml         = np.reshape(b1[poi[0],:,poi[2]],zShape)
+    b3_ml         = np.reshape(b3[poi[0],:,poi[2]],zShape)
+    B_ml          = np.reshape(B[poi[0],:,poi[2]],zShape)
+    rho_0_ml      = np.reshape(rho_0[poi[0],:,poi[2]],zShape)
+    H_ml          = np.reshape(H[poi[0],:,poi[2]],zShape)
+    g_ml          = g
+    x_ml          = np.reshape(x[poi[0],:,poi[2]],zShape)
+    z_ml          = np.reshape(z[poi[0],:,poi[2]],zShape)
+    t_ml          = np.reshape(t[poi[0],:,poi[2]],zShape)
     
-    import ipdb; ipdb.set_trace()
-    print "Don't print me."
+    self.ml = multilayer(
+        omega_bar_ml,
+        k_x_bar_ml,
+        mu_ml,
+        lambda_th_ml,
+        temp_0_ml,
+        p0_z_ml,
+        sigma_p_ml,
+        b1_ml,
+        b3_ml,
+        B_ml,
+        rho_0_ml,
+        H_ml,
+        g_ml,
+        x_ml, z_ml, t_ml)
+
+#    self.ml = multilayer(
+#        omega_bar,
+#        k_x_bar,
+#        mu,
+#        lambda_th,
+#        temp_0,
+#        p0_z,
+#        sigma_p,
+#        b1,
+#        b3,
+#        B,
+#        rho_0,
+#        H,
+#        g,
+#        x, z, t)
+    
     #[Francis, 1974] Equation (67)
     #Here rho0_z_s is a mass density [kg/m^3]
     pp = ( np.abs(T)
@@ -879,7 +1492,10 @@ class gw(object):
 
       tt = tt+1
 
+    title = r"Velocity Perturbation $v_x'$"
+    mp.suptitle(title)
     mp.tight_layout()
+    mp.subplots_adjust(top=0.90)
 
   def plotSoundProfile(self):
     mp.figure(figsize=(16/3.,8))
@@ -1081,7 +1697,7 @@ class gw(object):
     yData = self.omega_c2[:,z_inx,t_inx]
     mp.plot(xData,yData)
     mp.gca().set_xticklabels([])
-    mp.gca().set_yscale('log')
+#    mp.gca().set_yscale('log')
 #    mp.ylabel(r'$2 \pi / \omega_{c2}$ [min]')
     mp.ylabel(r'$\omega_{c2}$')
     if markRange != None: vline(markRange,markStr,'g')
