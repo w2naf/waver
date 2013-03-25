@@ -7,7 +7,7 @@ date = datetime.datetime(2010,11,19,14,0)
 #x    = np.linspace(50., 100., 10000)
 x    = np.linspace(0., 5000., 50)
 
-z    = np.linspace(0., 500., 50)
+z    = np.linspace(0., 500., 500)
 t    = np.linspace(0., 3600., 60) #Time in seconds
 t    = np.array([1., 2., 3., 4., 5.]) * 3600.
 

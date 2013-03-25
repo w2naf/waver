@@ -76,10 +76,6 @@ nScanSteps  = N_ELEMENTS(scanStepVec)
 scan_ids = LONARR(nScanSteps)
 
 FOR step=scanStart,nScanSteps-1  DO BEGIN
-    PRINFO,'We are working on radar: '+strupcase(radar)
-    PRINFO,'Time range: '+JUL2STRING(sJul)+' to '+JUL2STRING(fJul)
-    PRINFO,'Time step ' + NUMSTR(step) + ' of ' + nSteps$
-    PRINT,'Starting position calculations.'
     t0                  = SYSTIME(1)
 
     scan_number = scanStepVec[step]
@@ -96,7 +92,11 @@ FOR step=scanStart,nScanSteps-1  DO BEGIN
     scanDate    = scanDate[0]
     scanTime    = scanTime[0]
 
-    juls$           = JUL2STRING(juls)
+    juls$           = JUL2STRING(scan_startJul)
+    PRINFO,'We are working on radar: '+strupcase(radar)
+    PRINFO,'Time range: '+JUL2STRING(sJul)+' to '+JUL2STRING(fJul)
+    PRINFO,'Time step ' + NUMSTR(step) + ' of ' + nSteps$ + '('+juls$+')'
+    PRINT,'Starting position calculations.'
 
     local_inx           = RAD_FIT_INX_SIMPLESCAN(scan_number,GLOBAL_INX=global_inx)
 

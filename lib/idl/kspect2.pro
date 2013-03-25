@@ -125,7 +125,7 @@ IF KEYWORD_SET(fir_filter) THEN BEGIN
   ENDIF
   FOR bb=0,dims[1]-1 DO BEGIN
       FOR gg=0,dims[2]-1 DO BEGIN
-          IF bb EQ 0 AND gg EQ 0 THEN plot_info = 1 ELSE plot_info=0
+          IF bb EQ 0 AND gg EQ 0 AND gl GE mpGL THEN plot_info = 1 ELSE plot_info=0
           filt = FIR_FILT(REFORM(julVec),REFORM(interpData[*,bb,gg]),FLOW=bandLim[0],FHIGH=bandLim[1],PLOT_INFO=plot_info,VALIDJULS=validJuls)
           filtArr[*,bb,gg] = filt
   ;       filtArr[*,bb,gg] = interpData[*,bb,gg]
@@ -376,7 +376,7 @@ IF gl GE mpGL THEN BEGIN
 ENDIF   ; mpGL
 
 
-IF KEYWORD_SET(fir_filter) THEN BEGIN
+IF KEYWORD_SET(fir_filter) AND gl GE mpGL THEN BEGIN
 ;  fir_scale = [-10,10]
   PICKLE_MY_DATA,radar,filtJulVec,filtArr,sel_ctrArr_grid,sel_bndArr_grid,run_id,PATH='output/kmaps/pickle/',PREFIX='FIR_'
   title = 'Raw and FIR Filtered ('+NUMSTR(bandLim[0]*1000.,1)+'-'+NUMSTR(bandLim[1]*1000.,1)+' mHz) Data Comparison'
@@ -408,9 +408,10 @@ pf      = WHERE(freqVec GT 0)
 posFreqVec      = freqVec[pf]
 posSpectArr     = spectArr[pf,*,*]
 
-IF gl GE 2 THEN BEGIN
+IF gl GE 1 THEN BEGIN
     SAVE,FILENAME='spect.sav'
-    PLOT_FULL_SPECTRUM
+    IF gl GE 2 THEN png=1 ELSE png=0
+    PLOT_FULL_SPECTRUM,PNG=png
 ENDIF
 
 IF N_ELEMENTS(bandLim) NE 2 THEN bandLim = [0,0]
@@ -705,7 +706,19 @@ t1      = SYSTIME(1) - t0
 PRINFO,'K-array calculation time: ' + NUMSTR(t1,1) + ' sec'
 SAVE,FILENAME='karr.sav'
 
-IF gl GE 2 THEN BEGIN
-    PLOT_KARR
+IF gl GE 1 THEN BEGIN
+  IF gl GE 2 THEN png=1 ELSE png=0
+    PLOT_KARR,PNG=png
 ENDIF
+
+IF KEYWORD_SET(statistics) THEN BEGIN
+  SPAWN,'mkdir -p '+savPath
+  SAVE,FILENAME=savPath+'/'+savName+'.sav'
+  klogFile = savPath+'/'+'karr.txt'
+  IF ~FILE_TEST(klogFile) THEN BEGIN
+    SPAWN,'tail -n '+ NUMSTR(nmax+4) +' output/kmaps/kspect/karr.txt | head -n 2 >> ' + klogFile
+  ENDIF
+  SPAWN,'tail -n '+ NUMSTR(nmax+2) +' output/kmaps/kspect/karr.txt | head -n ' + NUMSTR(nmax) +' >> ' + klogFile
+ENDIF
+
 END

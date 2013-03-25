@@ -50,6 +50,9 @@ COMMON MUSIC_PARAMS                     $
         ,gl                             $   
         ,height                         $
         ,fix_height                     $
+        ,statistics                     $   ;Run in statistics mode; that is keep a log file of all found karr and save all karr.sav
+        ,savName                        $
+        ,savPath                        $
         ,test
 
 COMMON LOAD_MUSIC_EVENTS_BLK            $

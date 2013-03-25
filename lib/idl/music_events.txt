@@ -13,11 +13,11 @@
 #       2: movie
 #       2: compsim
 #       3: multi.ps
-#       2: fullspectrum
+#       1: fullspectrum
 #       3: dlm_abs.ps
 #       3: dlm_rs.ps
 #       3: dlm_im.ps
-#       2: karr.ps
+#       1: karr.ps
 
 > timeStep        = 2.          ;timeStep between scans in Minutes.
 > param           = 'power'
@@ -32,12 +32,14 @@
 > coord           = 'geog'
 > dkx             = 0.001
 > dky             = 0.001
-> gl              = 3 
+> gl              = 3
 > test            = 0 
 > nmax            = 5
 > fir_filter      = 1
 > zero_padding    = 1
 > use_all_cells   = 1
+> statistics      = 1
+> savPath         = '/data2/music/'
 #> height          = 300.
 #> fix_height      = 1
 

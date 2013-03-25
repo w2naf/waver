@@ -97,10 +97,11 @@ CLOSE,1
 END
 
 ;###############################################################################
-PRO RUN_MUSIC
+PRO RUN_MUSIC,datFile,STATS=stats
 COMMON MUSIC_PARAMS     ;Defined in io/music_blk.pro
 
-datFile = 'music_events.txt'
+IF ~KEYWORD_SET(datFile) THEN datFile = 'music_events.txt'
+IF KEYWORD_SET(stats) THEN datFile = 'music_events_stats.txt'
 LOAD_MUSIC_EVENTS,datFile,N_EVENTS=n_events
 
 runJul  = SYSTIME(/JUL)
@@ -121,27 +122,30 @@ FOR ee=0,n_events-1 DO BEGIN
     SPAWN,'cp '+datFile+' output/kmaps/'
     APPEND_RUN_ID,'output/kmaps/'+datfile
 
-    GSPOS
 ;    KSPECT2
     IF KEYWORD_SET(fir_filter) and N_ELEMENTS(fir_date) EQ 2 THEN BEGIN
-      dirName = NUMSTR(fir_date[0])                               $
+      tmpName0 = NUMSTR(fir_date[0])                               $
               + '.' + STRING(fir_time[0],FORMAT='(I04)')          $
               + '-' + STRING(fir_time[1],FORMAT='(I04)')          $
-              + 'UT'                                              $
-              + '.FIR_' + STRING(bandLim[0]*10000,FORMAT='(I04)') $
+              + 'UT'                                              
+      tmpName1 = 'FIR_' + STRING(bandLim[0]*10000,FORMAT='(I04)') $
               + '-' + STRING(bandLim[1]*10000,FORMAT='(I04)')     $
               + 'mHz'                                             $
               + '.' + radar
     ENDIF ELSE BEGIN
-      dirName = NUMSTR(date[0])                               $
+        tmpName0 =  NUMSTR(date[0])                               $
               + '.' + STRING(time[0],FORMAT='(I04)')          $
               + '-' + STRING(time[1],FORMAT='(I04)')          $
-              + 'UT'                                          $
-              + '.' + STRING(bandLim[0]*10000,FORMAT='(I04)') $
+              + 'UT'                                          
+        tmpName1 = STRING(bandLim[0]*10000,FORMAT='(I04)') $
               + '-' + STRING(bandLim[1]*10000,FORMAT='(I04)') $
               + 'mHz'                                         $
               + '.' + radar
     ENDELSE
+    dirName = tmpName0 + '.' + tmpName1
+    savPath = savPath+'/'+tmpName1
+    savName = tmpName0
+    GSPOS
 
     SPAWN,'mv output/kmaps/kspect/fullspect.png output/kmaps/'
     SPAWN,'mv output/kmaps/kspect/karr.png output/kmaps/'

@@ -6,9 +6,16 @@ from matplotlib import pyplot as mp
 import numpy as np
 import scipy as sp
 
+import mlPlot
+
+mp.ion()
+
 g     = 8.83 # m s^{-2}
 gamma = 1.5
 R_gas = 8.3144621     #Ideal gas constant [J / (mol K)]
+
+def mvWin(pos="+0+0"):
+  mp.get_current_fig_manager().window.wm_geometry(pos)
 
 def get_iterable(x):
     if isinstance(x, collections.Iterable):
@@ -836,7 +843,9 @@ class multilayer(object):
     H:          Scale height [m]
     g:          Gravitational acceleration [m/(s**2)]
     """
+    x     = np.array(x)
     z     = np.array(z)
+    t     = np.array(t)
 
     ns    = ns_functions()
     alpha = ns.alpha(k_x,H)
@@ -850,7 +859,6 @@ class multilayer(object):
     C1    = ns.C1(alpha,beta,eta,nu,sigma,b1,b3,gamma)
     C0    = ns.C0(alpha,beta,eta,sigma,b1,b3,gamma)
 
-
     C0_inx    = 0
     C1_inx    = 1
     C2_inx    = 2
@@ -863,8 +871,10 @@ class multilayer(object):
     kappa_dn_inx  = 9
     kappa_up_inx  = 10
     nGrowth_inx   = 11
+    all_k_z       = np.zeros(np.shape(C0),dtype=np.object)
+    root_used     = np.zeros(np.shape(C0),dtype=np.int8)
 
-    it = np.nditer([C0,C1,C2,C3,alpha,k_x,H,None,None,None,None,None])
+    it = np.nditer([C0,C1,C2,C3,alpha,k_x,H,None,None,None,None,None],flags=['multi_index'])
     nn = -1
     size = np.size(C3)
     while not it.finished:
@@ -906,7 +916,6 @@ class multilayer(object):
       #going to say that the k_z pair in which both k_z's show growth is the
       #correct one.  If there are none or more than one, drop to the debugger.
       #This will probably need to be adjusted later.
-
       growth = np.zeros(3)
       kk = 0
       for k_z in k_z_list:
@@ -915,23 +924,27 @@ class multilayer(object):
         kk = kk + 1
 
       inx = np.where(growth == 1)
+      inx = ([2],)  #Lock things down to the 3rd solution... I have good reason to believe this is the one that I want.
       nGrow   = np.size(inx)
       it[nGrowth_inx] = nGrow
       if nGrow != 1:
 #        print 'I\'m not sure which k_z value to use for the GW... Help!!'
 #        print k_z_list
+        root_used[it.multi_index] = -1
         it[k_z_dn_inx]    = 0
         it[k_z_up_inx]    = 0
         it[kappa_dn_inx]  = 0
         it[kappa_up_inx]  = 0
       else:
+        root_used[it.multi_index] = inx[0][0]
         root    = roots[inx[0][0]]
         k_z     = np.sort(k_z_list[inx[0][0]])
         it[k_z_dn_inx] = k_z[0] #k_z_dn
         it[k_z_up_inx] = k_z[1] #k_z_up
         it[kappa_dn_inx] = (k_z[0] + 1j/(2.*it[H_inx]))/it[k_x_inx] #kappa_dn
         it[kappa_up_inx] = (k_z[1] + 1j/(2.*it[H_inx]))/it[k_x_inx] #kappa_up
-      
+
+      all_k_z[it.multi_index] = k_z_list
 #      print k_z,nn,'/',size
       it.iternext()
 
@@ -954,6 +967,7 @@ class multilayer(object):
     A_p_up    = ns.A_p(A_x_up,A_z_up,A_T_up,T_0,p_0,kappa_up,root,alpha,nu,gamma,omega,k_x)
     A_chi_up  = ns.A_chi(A_p_up,A_z_up,p_0,omega,H,mu,k_x,k_z_up)
 
+
     dzm         = z - np.roll(z,1,1)
     dzm[:,0,:]  = np.nan
 
@@ -970,7 +984,6 @@ class multilayer(object):
     a12_up = ns.a12_up(A_z_dn,A_chi_dn,A_z_up,A_chi_up,e_dzm_dn,e_dzm_up)
     a21_up = ns.a21_up(A_z_dn,A_chi_dn,A_z_up,A_chi_up,e_dzm_dn,e_dzm_up)
     a22_up = ns.a22_up(A_z_dn,A_chi_dn,A_z_up,A_chi_up,e_dzm_dn,e_dzm_up)
-    import ipdb; ipdb.set_trace()
 
     shape     = np.shape(z)
     nx,nz,nt  = shape
@@ -979,24 +992,32 @@ class multilayer(object):
     chi_pr_up = np.zeros(shape,dtype=np.complex)
     chi_pr_dn = np.zeros(shape,dtype=np.complex)
 
-    for xx in range(nx):
-      for tt in range(nt):
-        chi_pr_dn[xx,0,tt] = a22_dn[xx,0,tt]*chi_pr_dn[xx,m-1,t]
-        chi_pr_up[xx,m,tt] = a21_up[xx,m,tt]*uz_pr_up[xx,m-1,tt] + a22_up[xx,m,tt]*chi_pr_up[xx,m-1,t]
-      tt = tt+1
-    xx = xx+1
+    xi        = ns.xi(x[:,0,:],z[:,0,:],t[:,0,:],omega[:,0,:],k_x[:,0,:],H[:,0,:])
+    e_z_dn    = 1.+0j #At z=0
+    e_z_up    = 1.+0j #At z=0
+    C_dn  = 5+0j
+    C_up  = 1+0j
+    chi_pr_dn[:,0,:] = C_dn * A_chi_dn[:,0.,:] * xi * e_z_dn
+    chi_pr_up[:,0,:] = C_up * A_chi_up[:,0.,:] * xi * e_z_up
 
     for xx in range(nx):
       for tt in range(nt):
-        for m in range(nz-1)+1:
-          uz_pr_dn[xx,m,tt] = a11_dn[xx,m,tt]*uz_pr_dn[xx,m-1,tt] + a12_dn[xx,m,tt]*chi_pr_dn[xx,m-1,t]
-          uz_pr_up[xx,m,tt] = a11_up[xx,m,tt]*uz_pr_up[xx,m-1,tt] + a12_up[xx,m,tt]*chi_pr_up[xx,m-1,t]
+        for m in [mmm+1 for mmm in range(nz-1)]:
+          uz_pr_dn[xx,m,tt] = a11_dn[xx,m,tt]*uz_pr_dn[xx,m-1,tt] + a12_dn[xx,m,tt]*chi_pr_dn[xx,m-1,tt]
+          uz_pr_up[xx,m,tt] = a11_up[xx,m,tt]*uz_pr_up[xx,m-1,tt] + a12_up[xx,m,tt]*chi_pr_up[xx,m-1,tt]
           
-          chi_pr_dn[xx,m,tt] = a21_dn[xx,m,tt]*uz_pr_dn[xx,m-1,tt] + a22_dn[xx,m,tt]*chi_pr_dn[xx,m-1,t]
-          chi_pr_up[xx,m,tt] = a21_up[xx,m,tt]*uz_pr_up[xx,m-1,tt] + a22_up[xx,m,tt]*chi_pr_up[xx,m-1,t]
+          chi_pr_dn[xx,m,tt] = a21_dn[xx,m,tt]*uz_pr_dn[xx,m-1,tt] + a22_dn[xx,m,tt]*chi_pr_dn[xx,m-1,tt]
+          chi_pr_up[xx,m,tt] = a21_up[xx,m,tt]*uz_pr_up[xx,m-1,tt] + a22_up[xx,m,tt]*chi_pr_up[xx,m-1,tt]
         tt = tt+1
       xx = xx+1
 
+    roi = [0,slice(None),0]
+    
+#    mlPlot.plotLayerWaves(x[roi],z[roi],t[roi],uz_pr_up[roi],uz_pr_dn[roi],chi_pr_up[roi],chi_pr_dn[roi])
+#    mlPlot.plotPolarization(x[roi],z[roi],t[roi], A_x_dn[roi], A_z_dn[roi], A_T_dn[roi], A_p_dn[roi], A_chi_dn[roi], A_x_up[roi], A_z_up[roi], A_T_up[roi], A_p_up[roi], A_chi_up[roi])
+#    mlPlot.plotParams(x[roi],z[roi],t[roi],omega[roi],k_x[roi],k_z_up[roi],k_z_dn[roi])
+    mlPlot.plotKz(x[roi],z[roi],t[roi],all_k_z[roi],k_z_up[roi],k_z_dn[roi],root_used[roi])
+    import ipdb; ipdb.set_trace()
 
     #Basic Sinusoids...
     e_dn    = np.exp(1j*omega*tGrid - 1j*k_x*xGrid - 1j*k_z_dn*zGrid + zGrid/(2.*H))

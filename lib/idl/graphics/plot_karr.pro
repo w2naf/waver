@@ -1,5 +1,5 @@
 ;K-Spectrum!!!!
-PRO PLOT_KARR
+PRO PLOT_KARR,PNG=png
 RESTORE,FILENAME='karr.sav'
 file        = DIR('output/kmaps/kspect/karr.ps',/PS)
 
@@ -117,7 +117,11 @@ mLats           = REPLICATE(ctrMLat,nMax)
 mLons           = REPLICATE(ctrMLon,nMax)
 mlts            = REPLICATE(FLOOR(ctrMLT)*100 + ROUND((ctrMLT MOD 1)*60.),nMax)
 mazms           = GEO_TO_AACGM_AZM(glats,glons,azms)
-durs            = REPLICATE((fjul - sjul) * 24.,nMax)
+IF KEYWORD_SET(fir_filter) THEN BEGIN
+  durs            = REPLICATE((vfJul - vsJul) * 24.,nMax)
+ENDIF ELSE BEGIN
+  durs            = REPLICATE((fjul - sjul) * 24.,nMax)
+ENDELSE
 
 
 ;Format parameters.
@@ -294,7 +298,7 @@ XYOUTS,0.1,0.03,txt$,CHARSIZE=0.75,/NORMAL
 
 
 PS_CLOSE,/NO_FILENAME,NOTE='Run ID: ' + run_id
-PS2PNG,file,ROTATE=270
+IF KEYWORD_SET(png) THEN PS2PNG,file,ROTATE=270
 
 output_file     = 'output/kmaps/kspect/karr.txt'
 ; Output to text file. ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
